@@ -203,23 +203,116 @@ Found by probing, not reading:
 - [x] Record observed latency across several calls.
 - [x] Record pricing and how usage is reported.
 - [x] Note rate limits and quota behavior.
-- [ ] Note anything in the terms of use that constrains how JevKit may call it.
-- [ ] Build a small labeled evaluation dataset from a real task.
+- [x] Record timeout behaviour against a real network condition (not only mocks) — see
+      "Timeout behaviour" below; `429`/`5xx` are deliberately not force-triggered (see below).
+- [x] Note anything in the terms of use that constrains how JevKit may call it — see
+      "Terms of use" below; surfaced one unresolved item (🚩) for a human decision before Phase 3
+      benchmark numbers are published.
+- [x] Build a small labeled evaluation dataset — this project has no production traffic to draw
+      "real" examples from, so per a decision recorded in `progress.md`, the three synthetic
+      datasets were expanded instead (18 → 35 rows) with honest `synthetic: true` labeling and
+      disclosed methodology, rather than mislabeling invented text as "real."
 - [x] Update `schema.py`, set `SCHEMA_VERIFIED = True`, and record the API version here.
 - [x] Add tests covering the real response shapes.
 
 **Exit criteria: MET.** `python scripts/verify_jev_api.py` calls Jev and parses documented
-responses end to end, exit code 0. All three example tasks run live through the public SDK with
-`validation_status=valid`. Remaining: the legal review and a labeled dataset (phase 3).
+responses end to end, exit code 0. `python scripts/verify_timeout_behavior.py` forces a real
+timeout at every layer, exit code 0. All three example tasks (35 labeled rows total) run live
+through the public SDK and `jevkit bench` with `validation_status=valid` / 100% coverage. The
+legal review is done and raised a real flag rather than closing clean (see below). Every Phase 1
+checklist item is now closed.
+
+## Timeout behaviour ✅ — real, not mocked
+
+`scripts/verify_jev_api.py` never triggered a timeout; every probe finished in under a second.
+[`scripts/verify_timeout_behavior.py`](../scripts/verify_timeout_behavior.py) forces one for
+real, at two layers, using an unreasonably short client-side timeout (not by asking Jev to be
+slow — that's not something we control):
+
+1. **Transport (`httpx`, bypassing the JevKit adapter).** A 10 ms connect timeout produced a
+   real `httpx.ConnectTimeout` in ~157–279 ms (TLS handshake time). A 100 ms read timeout with a
+   generous connect budget produced a real `httpx.ReadTimeout` in ~555–690 ms.
+2. **End-to-end through the public SDK.** `DecisionClient.decide_with_trace()` with
+   `DecisionPolicy(timeout_seconds=0.05, max_retries=1)` produced this real trace:
+
+   ```
+   provider_call   {'provider': 'jev', 'attempt': 1}
+   failed          {'provider': 'jev', 'attempt': 1, 'error': 'TimeoutError', 'retryable': True}
+   retry           {'attempt': 2, 'reason': 'provider_error'}
+   provider_call   {'provider': 'jev', 'attempt': 2}
+   failed          {'provider': 'jev', 'attempt': 2, 'error': 'TimeoutError', 'retryable': True}
+   failed                                                              # exhausted, execution_status=failed
+   ```
+
+   The error surfaced to `engine.py` is `TimeoutError` (from `asyncio.wait_for`, which wraps
+   `provider.decide()` at the same `policy.timeout_seconds` the httpx client also uses — the two
+   timeouts race, and `asyncio.wait_for`'s tends to fire first). It is marked `retryable=True` and
+   the policy's retry budget and exponential-ish backoff (`retry_backoff_seconds * attempt`) both
+   ran for real, ending in `execution_status=failed` as documented.
+
+Confirmed: `ProviderTimeoutError`/engine-level `TimeoutError` handling is exercised by a real
+network condition, at every layer, not only by unit tests against mocks.
+
+**`429` and `5xx` remain deliberately unobserved.** Forcing a `429` means sending enough requests
+fast enough to exceed the account's rate limit — i.e. deliberately exceeding a documented "Usage
+Limit," which §2.3(j) of the Master Customer Agreement prohibits (see below). Forcing a `5xx` is
+not something a client can do at all. Their handling (401/403 → auth, 429 → rate limit with
+`retry_after_ms` parsing, ≥500 including 529 → retryable) is written to the docs and covered by
+tests built on captured/documented payloads; it has not met a live response, and that is a
+deliberate scope boundary, not an oversight.
+
+## Terms of use — reviewed 2026-09-21
+
+<https://docs.typesafe.ai/legal.md> is an index page; the substance is in three linked documents.
+**This is a summary for engineering awareness, produced by an LLM reading the pages — not legal
+advice.** Anything load-bearing (see the flag below) needs an actual lawyer before v0.1 ships.
+
+Reviewed: [Master Customer Agreement](https://typesafe.ai/legal/mca),
+[Data Processing Agreement](https://typesafe.ai/legal/data-processing),
+[Privacy Policy index](https://typesafe.ai/legal/privacy-policy).
+
+- 🚩 **§2.3(b) prohibits using the Services or any Output to "develop (or facilitate the
+  development of) a similar or competing product or service."** JevKit's Phase 3 goal — a
+  benchmark suite that runs the same dataset through Jev *and* a reference/fallback provider and
+  compares them — sits close to this line. It is not training on Jev's outputs and it is not
+  building a competing model, but "compares Jev against alternatives, in public, in an
+  open-source repo" is exactly the shape of thing this clause is written to prevent someone from
+  hiding inside. **This needs a human decision before Phase 3 numbers are published**, not an
+  engineering one — options include: keep comparative benchmark output private/local-only, seek
+  written permission from TypeSafe, or drop head-to-head framing and report each provider's
+  numbers separately without a "Jev vs. X" comparison. Not resolved here.
+- §2.3(j): must not exceed the account's "Usage Limits." This is why the 429 probe above was
+  skipped deliberately.
+- §2.1: the license to use the Services is non-sublicensable, restricted to "access and use the
+  Services in accordance with applicable documentation." Whether an open-source SDK that lets
+  *other* people's accounts call the API through JevKit's code counts as sublicensing "access,"
+  or is just... a client library (every SDK is this), isn't answered by the text. JevKit ships no
+  API key of its own — every user supplies their own TypeSafe account — which is the usual way
+  SDKs stay on the right side of this, but flagging it as unresolved rather than assuming it.
+- §16.4: neither party may publicly announce that they've "entered into the Agreement" without
+  consent. Doesn't obviously restrict describing JevKit as "a client for the TypeSafe API"
+  (nominative use), but is one more reason the existing "Notes on attribution" section's caution
+  (no claimed endorsement/affiliation) is the right posture, not overcaution.
+- §9.3/§12.2: Services are provided "AS IS," liability capped at fees paid in 12 months or $50.
+  This doesn't transfer any obligation onto JevKit itself, but it means JevKit can't promise
+  users more reliability than TypeSafe promises JevKit.
+- DPA: TypeSafe is a processor for whatever JevKit sends as `state`; retention is "as long as
+  necessary," no fixed window. JevKit becomes a *separate* controller for anything it persists
+  locally (trace files, `JsonlTraceRecorder`, the eventual Postgres store) — already partly
+  covered by "secrets never reach a trace" in the conventions below, but PII in a `state` field
+  is a broader category than secrets and isn't specifically handled yet.
+- No explicit rate-limit numbers or an automated-access policy beyond "don't exceed your Usage
+  Limits" were found in the MCA.
+
+Bottom line for the roadmap: the 🚩 above is the one item that actually blocks Suggested Next
+Step #1 ("review terms before publishing benchmark numbers") — the review is now done, and it
+surfaced a real open question rather than a clean pass.
 
 ## Open questions
 
-- `429` and `5xx` bodies are still unobserved; the `retry_after_ms` field is documented only.
 - `confidence` semantics: `choice` returned `1.0` on an unambiguous input. Whether it is a
   margin or a calibrated probability is described at <https://docs.typesafe.ai/confidence.md>
   and has not been checked against behaviour.
-- Terms of use (<https://docs.typesafe.ai/legal.md>) not yet reviewed for redistribution or
-  benchmarking constraints — relevant before publishing benchmark results.
 
 ## Notes on attribution
 

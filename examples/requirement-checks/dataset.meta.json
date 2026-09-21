@@ -2,6 +2,6 @@
   "name": "requirement-checks",
   "version": "2",
   "description": "Artifacts paired with a fixed requirement checklist.",
-  "methodology": "Synthetic artifacts written so each requirement is unambiguously met or unmet by inspection. Jev has no multi-select primitive, so each requirement is labelled as its own yes/no ('unmet_<requirement>'). 'review_depth' is intentionally unlabeled: it is a judgement with no ground truth, so it is never scored for accuracy.",
+  "methodology": "Synthetic artifacts written so each requirement is unambiguously met or unmet by inspection, plus a few edge cases (bold text where a heading is required, fully-sourced but over the word limit, well-formed but uncited) that are flagged rather than trivially labeled. Jev has no multi-select primitive, so each requirement is labelled as its own yes/no ('unmet_<requirement>'). 'review_depth' is intentionally unlabeled: it is a judgement with no ground truth, so it is never scored for accuracy.",
   "synthetic": true
 }

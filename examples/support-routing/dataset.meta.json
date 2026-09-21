@@ -2,6 +2,6 @@
   "name": "support-routing",
   "version": "1",
   "description": "Small labeled set of inbound support messages.",
-  "methodology": "Examples are synthetic, authored by hand to cover each department and both urgency outcomes. Labels reflect the author's judgement and were not reviewed by a support team; ambiguous cases are marked in the example notes. This set is far too small to support a general accuracy claim and exists to make the pipeline runnable end to end.",
+  "methodology": "Examples are synthetic, authored by hand to cover each department, both urgency outcomes, and several deliberately ambiguous or boundary cases (security concerns, churn threats, entitlement-vs-billing overlap). Labels reflect the author's judgement and were not reviewed by a support team; ambiguous cases are marked in the example notes. There is no production support traffic for this project to sample from instead. This set is still small and hand-authored, not sampled from real traffic, and does not support a general accuracy claim.",
   "synthetic": true
 }

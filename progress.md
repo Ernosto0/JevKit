@@ -1,0 +1,230 @@
+# JevKit — development progress
+
+Working state of the project against the roadmap in [`.claude/plan.md`](.claude/plan.md) §20.
+Written for whoever (human or agent) picks this up next.
+
+**Last updated:** 2026-09-21 (timeout probe + terms-of-use review added) · **Version:**
+`0.1.0.dev0` · **Branch:** `main` · **No tags yet**
+
+| Phase | Status |
+|---|---|
+| 1. Jev validation | ✅ **Done** — exit criteria met |
+| 2. Core library | ✅ **Done** — exit criteria met |
+| 3. Evaluation and fallback | 🟡 **Partial** — blocked on a reference provider |
+| 4. Developer API | 🟡 **Partial** — works in memory; no Postgres persistence |
+| 5. CLI and v0.1 release | 🟡 **Partial** — shipping tasks remain |
+| 6. Dashboard | 🟡 **Scaffolded** — pages exist, fed by in-memory data |
+
+Legend: `[x]` done · `[~]` partial, see note · `[ ]` not started
+
+---
+
+## Verify this yourself
+
+Don't trust this file over the repo. These four commands establish the real state in a minute:
+
+```bash
+.venv/Scripts/python.exe -m pytest -q                          # 85 passed
+.venv/Scripts/python.exe -m ruff check . && .venv/Scripts/python.exe -m mypy packages apps
+.venv/Scripts/python.exe scripts/verify_jev_api.py             # exit 0 = live API contract holds
+.venv/Scripts/python.exe scripts/verify_timeout_behavior.py    # exit 0 = real timeout, every layer
+.venv/Scripts/python.exe examples/support-routing/run.py       # live end-to-end + trace
+```
+
+The last two spend real money (fractions of a cent) and need `JEV_API_KEY` in `.env`.
+
+---
+
+## Read this before touching the Jev adapter
+
+Five things that cost time to discover. Full detail in [`docs/jev-api-notes.md`](docs/jev-api-notes.md).
+
+1. **Two different services answer to "Jev".** The first-party API is TypeSafe's
+   (`api.typesafe.ai/v1/systemone`, keys from <https://console.typesafe.ai/settings/keys>).
+   `jevai.org` is a separate service with its own endpoint, envelope and keys. **Their keys are
+   not interchangeable** — a `jevai.org` key returns `401` here and looks exactly like a broken
+   key. JevKit targets TypeSafe.
+2. **Jev has exactly three question types:** `noul`, `choice`, `score`. `Selection`, `Scalar`
+   and `Rank` exist in JevKit's provider-agnostic vocabulary but the Jev adapter rejects them
+   with `TaskDefinitionError` before making a request. For "pick several", ask one `Noul` per
+   option.
+3. **`noul` answers carry no `confidence` field.** The probability *is* the answer. Code that
+   reads `answers[k]["confidence"]` unconditionally will `KeyError`.
+4. **A `422` echoes your whole request back**, `state` included. Never log an error body
+   verbatim — `provider._safe_detail()` strips the echo and there is a test pinning that.
+5. **The published docs are wrong in places** — `score.probabilities`/`legend` are objects keyed
+   by stringified index (not arrays), a 1-level rubric is accepted, and a top-level
+   `instructions` field is a hard `400`. Probe before trusting a doc page.
+
+---
+
+## Phase 1 — Jev validation ✅
+
+**Exit criteria: MET.** `scripts/verify_jev_api.py` calls Jev and parses documented responses,
+exit 0. Verified against `jev-1.13.0` on 2026-09-21.
+
+- [x] Verify current official API documentation and access
+- [x] Confirm authentication and API key setup
+- [x] Send a minimal real request
+- [x] Test each documented question type
+- [x] Test multiple questions in one request — supported, ~2× cheaper in wall time than serial
+- [x] Record response schema, errors and latency
+- [x] Record timeout behaviour — real (not mocked) `ConnectTimeout`/`ReadTimeout` at the
+      transport layer, and a real end-to-end `TimeoutError` → retry → `TimeoutError` → `failed`
+      trace through the public `DecisionClient`. `429`/`5xx` remain deliberately unforced: doing
+      so means deliberately exceeding the account's Usage Limits, which the Master Customer
+      Agreement prohibits (see below) — their handling stays doc-written and mock-tested only,
+      by policy rather than oversight.
+- [x] Review the Jev terms of use — done; surfaced one open item that needs a human/legal call,
+      not an engineering one (see below)
+- [x] Build a small labeled evaluation dataset — decided (with you) not to chase "real traffic"
+      that doesn't exist for this project. Instead expanded all three synthetic datasets, honestly
+      labeled: 18 → **35 rows** (support-routing 8→15, agent-routing 6→11, requirement-checks
+      4→9), adding boundary/edge cases (security concerns, churn-risk escalation, garbled input,
+      bold-text-vs-heading, fully-sourced-but-over-length). All 35 run live end to end
+      (`jevkit bench`, 100% coverage, 0% invalid on all three). `synthetic: true` and an honest
+      `methodology` stay mandatory and are still test-enforced
+      ([`tests/unit/test_examples.py`](tests/unit/test_examples.py)). Still too small for a
+      general accuracy claim — that framing is now explicit in each `dataset.meta.json` instead
+      of implied by an unmet "from real traffic" goal.
+- [x] Document unknowns and API limitations
+
+**Artifacts:** [`docs/jev-api-notes.md`](docs/jev-api-notes.md),
+[`scripts/verify_jev_api.py`](scripts/verify_jev_api.py),
+[`scripts/verify_timeout_behavior.py`](scripts/verify_timeout_behavior.py), raw captures in
+`.jevkit/phase1/` (gitignored).
+
+**🚩 New finding, needs a decision from you:** the Master Customer Agreement (§2.3(b)) prohibits
+using the Services/Output to "develop or facilitate the development of a similar or competing
+product or service." Phase 3's whole point — benchmarking Jev against a reference/fallback
+provider and publishing the comparison — sits close to that line. See "Terms of use" in
+[`docs/jev-api-notes.md`](docs/jev-api-notes.md) for the full breakdown and options. This is not
+resolved and blocks publishing any head-to-head benchmark numbers (Phase 5's "publish benchmark
+methodology and results" item) until you decide how to handle it.
+
+## Phase 2 — Core library ✅
+
+**Exit criteria: MET.** A developer can run a typed decision through the Python SDK against the
+real API and get a validated, traced result.
+
+- [x] Define typed task objects — `DecisionTask`, `Noul`/`Choice`/`Score`/`Selection`/`Scalar`/`Rank`
+- [x] Implement the Jev adapter — all 14 known divergences fixed, `SCHEMA_VERIFIED = True`
+- [x] Implement the public decision client — `DecisionClient`
+- [x] Normalize provider responses — including `usage` token counts
+- [x] Add schema validation
+- [x] Add typed errors
+- [x] Add timeout and bounded retry behavior
+- [x] Define the policy interface — `DecisionPolicy`
+- [x] Add unit tests and mocked provider tests — payloads are real captures
+
+## Phase 3 — Evaluation and fallback 🟡
+
+**Exit criteria: NOT MET.** "The same dataset can be run reproducibly through Jev and a
+reference provider" — there is no reference provider yet, only a stub.
+
+- [x] Implement benchmark dataset format — JSONL + `dataset.meta.json` with required `methodology`
+- [x] Implement benchmark runner — works live: `acc=0.875 f1=0.867` on support-routing
+- [x] Add applicable classification metrics — accuracy, F1
+- [x] Add probability/calibration metrics — Brier, ECE
+- [~] Record latency and cost metadata — latency and token counts recorded; `usage.cost_usd`
+      is deliberately left `None` (hardcoding $42/B would silently go stale)
+- [ ] **Implement one reference/fallback provider** ← the blocker for this phase
+- [~] Add fallback policies — the engine and policy support fallback and it is unit-tested with
+      stubs, but no real second provider has ever exercised the path
+- [~] Persist traces and benchmark runs — `JsonlTraceRecorder` works; nothing persists to a DB
+
+## Phase 4 — Developer API 🟡
+
+**Exit criteria: PARTIALLY MET.** The core is usable over a documented HTTP API, but nothing
+survives a restart.
+
+- [x] Implement FastAPI decision endpoints — `POST /v1/decisions`
+- [x] Add task endpoints — `POST /v1/tasks`, `GET /v1/tasks`
+- [x] Add trace retrieval — `GET /v1/traces/{trace_id}`
+- [x] Add API-key authentication — warns loudly when unset
+- [ ] **Add PostgreSQL persistence and migrations** — `apps/api/db.py` declares the ORM models
+      but routes still run against `apps.api.store.InMemoryStore`; there is no migrations
+      directory and Alembic is installed but unconfigured
+- [x] Add health endpoint and OpenAPI docs — `/health` (unprefixed) reports `jev_schema_verified`
+- [x] Add integration tests
+- [x] Add Docker Compose setup
+
+Beyond the checklist: `POST /v1/benchmarks` and `GET /v1/benchmarks/{run_id}` also exist.
+
+## Phase 5 — CLI and v0.1 release 🟡
+
+- [x] Build a CLI playground — `jevkit version | providers | decide | bench`, with `--dry-run`
+- [x] Add support-routing and agent-routing examples — plus requirement-checks; all three run live
+- [x] Write README and quickstart
+- [~] Publish benchmark methodology and results — methodology is in
+      [`docs/benchmarking.md`](docs/benchmarking.md); **no results published**, and publishing
+      any is gated on the legal review below
+- [x] Add contribution guide and license — MIT, CONTRIBUTING.md, issue/PR templates, CI
+- [ ] Verify clean installation in a fresh environment
+- [ ] Tag and publish v0.1
+
+## Phase 6 — Dashboard 🟡
+
+React + TypeScript app under `apps/dashboard/`. All seven pages are scaffolded and build.
+
+- [~] Overview page — exists
+- [~] Task list and task editor — exists
+- [~] Playground — exists
+- [~] Trace viewer — exists (`TraceTimeline` component)
+- [~] Benchmark comparison page — exists
+- [~] Settings and policy views — exist
+- [ ] **Verify that all displayed metrics are sourced from real stored runs** — cannot pass
+      while the API is backed by `InMemoryStore`; blocked on Phase 4 persistence
+
+---
+
+## MVP acceptance criteria (plan §21)
+
+- [x] Jev integration works against the verified current API
+- [x] Supported decision types are represented through typed task objects
+- [x] Provider errors and invalid outputs are handled predictably
+- [x] Retry and fallback limits are enforced
+- [x] Every execution can produce a trace
+- [x] A benchmark can run on a labeled dataset
+- [~] Metrics are reproducible and their methodology is documented — methodology yes; runs are
+      not persisted, so reproducibility is by re-running, not by record
+- [x] The Python SDK works without the dashboard
+- [x] API documentation and examples are complete
+- [ ] A fresh install succeeds using the documented steps — never tested
+- [x] No unsupported claims about accuracy, cost, or speed are made
+
+---
+
+## Suggested next steps
+
+In dependency order — each unblocks the next.
+
+1. ~~Review the Jev terms of use~~ **Done 2026-09-21** — see "Terms of use" in
+   [`docs/jev-api-notes.md`](docs/jev-api-notes.md). It did not close clean: §2.3(b) of the MCA
+   is a real risk to publishing any "Jev vs. reference provider" comparison. **Get a decision on
+   that before step 2 turns into a published benchmark.**
+2. **Build a reference/fallback provider** (Phase 3's blocker). Unblocks the fallback path and
+   provider comparison — but per step 1, decide how any resulting comparison will be presented
+   (private-only, separate-not-head-to-head, or with TypeSafe's written permission) before
+   building toward a public "vs." benchmark.
+3. **Wire PostgreSQL persistence + migrations** (Phase 4). Unblocks Phase 6's "real stored
+   runs" requirement and MVP reproducibility.
+4. **Verify a clean install in a fresh venv** (Phase 5). Likely to surface packaging gaps.
+5. **Then** publish benchmark results and tag v0.1.
+
+Smaller loose ends: `usage.cost_usd` is never populated; `429`/`5xx` handling has never met a
+real response (deliberately — see above; timeout handling now has, live, at every layer); the
+labeled datasets are synthetic and still small (35 rows total, up from 18), which is too thin to
+claim anything about accuracy.
+
+---
+
+## Conventions worth keeping
+
+- `make check` (or `ruff check . && ruff format --check . && mypy packages apps && pytest`) is
+  what CI runs. Keep it green.
+- Anything Jev-specific belongs in `packages/jevkit/providers/jev/`. The engine, policies,
+  validation and benchmarks must not learn the wire format.
+- A metric that does not apply reports **nothing**, never `0.0`.
+- Datasets carry a `methodology` field and a `synthetic` flag. Tests enforce both.
+- Secrets never reach a trace, a log or an exception message. There are tests for this.

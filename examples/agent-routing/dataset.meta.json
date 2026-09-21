@@ -2,6 +2,6 @@
   "name": "agent-routing",
   "version": "1",
   "description": "Synthetic user tasks mapped to a fixed capability set.",
-  "methodology": "Hand-authored tasks, one per route plus two deliberately ambiguous cases labeled 'human'. Labels encode the author's routing policy, not a ground truth about the tasks themselves. Do not reuse these labels outside this example.",
+  "methodology": "Hand-authored tasks: at least one per route, several deliberately ambiguous or low-confidence cases (garbled input, overlapping capabilities), and one consequential/irreversible action routed to a human on policy grounds rather than task-shape. Labels encode the author's routing policy, not a ground truth about the tasks themselves. Not sampled from real usage -- do not reuse these labels outside this example.",
   "synthetic": true
 }
