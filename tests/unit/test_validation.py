@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from jevkit.decisions.questions import Choice, Noul, Rank, Scalar, Selection
+from jevkit.decisions.questions import Choice, Noul, Rank, Scalar, Score, Selection
 from jevkit.decisions.task import DecisionTask
 from jevkit.validation.validators import validate_decisions
 
@@ -73,6 +73,18 @@ def test_rank_requires_a_full_permutation() -> None:
     assert not validate_decisions(task, {"order": ["a", "b", "b"]}).ok
 
 
+def test_score_is_bounded_by_its_rubric() -> None:
+    """A score is an unrounded position in [0, len(levels) - 1]."""
+    task = _task(severity=Score(levels=("None", "Minor", "Blocked", "Losing money")))
+    assert validate_decisions(task, {"severity": 2.94}).ok
+    assert validate_decisions(task, {"severity": 0}).ok
+    assert validate_decisions(task, {"severity": 3.0}).ok
+    assert not validate_decisions(task, {"severity": 3.01}).ok
+    assert not validate_decisions(task, {"severity": -0.1}).ok
+    assert not validate_decisions(task, {"severity": "high"}).ok
+    assert not validate_decisions(task, {"severity": True}).ok
+
+
 def test_question_definitions_reject_bad_configuration() -> None:
     with pytest.raises(ValueError, match="unique"):
         Choice(options=("a", "a"))
@@ -80,3 +92,10 @@ def test_question_definitions_reject_bad_configuration() -> None:
         Scalar(minimum=1.0, maximum=1.0)
     with pytest.raises(ValueError, match="max_selected must be >="):
         Selection(options=("a", "b"), min_selected=2, max_selected=1)
+    with pytest.raises(ValueError, match="unknown options"):
+        Choice(options=("a", "b"), descriptions={"z": "nope"})
+    with pytest.raises(ValueError, match="unique"):
+        Score(levels=("a", "a"))
+    # Jev rejects more than 10 rubric levels, so the model does too.
+    with pytest.raises(ValueError):
+        Score(levels=tuple(f"L{i}" for i in range(11)))

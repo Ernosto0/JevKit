@@ -65,8 +65,8 @@ def test_health_is_open_and_reports_schema_status(client: TestClient) -> None:
     body = response.json()
     assert body["status"] == "ok"
     assert body["version"]
-    # Honest by default: the Jev mapping is unverified until Phase 1 confirms it.
-    assert body["jev_schema_verified"] is False
+    # Phase 1 verified the mapping against the live API (jev-1.13.0).
+    assert body["jev_schema_verified"] is True
 
 
 def test_decide_with_ad_hoc_questions(client: TestClient) -> None:

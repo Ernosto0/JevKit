@@ -5,6 +5,11 @@
 
 Note the deterministic pre-check below: a model-based check complements code
 you can verify, it does not replace it.
+
+Jev answers yes/no, one-of-N and rubric questions -- it has no "pick several"
+primitive -- so "which requirements are unmet?" is asked as one noul per
+requirement, which is the documented pattern and lets each one carry its own
+probability.
 """
 
 from __future__ import annotations
@@ -14,7 +19,7 @@ import asyncio
 import json
 from pathlib import Path
 
-from jevkit import DecisionClient, DecisionPolicy, DecisionTask
+from jevkit import DecisionClient, DecisionPolicy, DecisionTask, Noul, Score
 from jevkit.providers import StaticProvider
 
 TASK_PATH = Path(__file__).parent / "task.json"
@@ -40,8 +45,11 @@ async def main(dry_run: bool) -> None:
             provider=StaticProvider(
                 {
                     "passes": 0.08,
-                    "missing_requirements": ["has_title", "cites_sources"],
-                    "review_depth": 0.6,
+                    "unmet_has_title": 0.91,
+                    "unmet_has_summary": 0.30,
+                    "unmet_cites_sources": 0.88,
+                    "unmet_under_word_limit": 0.02,
+                    "review_depth": 2.0,
                 }
             ),
             policy=DecisionPolicy(primary_provider="static"),
@@ -64,7 +72,12 @@ async def main(dry_run: bool) -> None:
         return
 
     # Where the two disagree, trust the deterministic check and flag the gap.
-    model_missing = set(result["missing_requirements"])
+    model_missing = set()
+    for requirement in REQUIREMENTS:
+        question = task.questions[f"unmet_{requirement}"]
+        assert isinstance(question, Noul)
+        if result[f"unmet_{requirement}"] >= question.threshold:
+            model_missing.add(requirement)
     for requirement, passed in checked.items():
         model_says_missing = requirement in model_missing
         if passed and model_says_missing:
@@ -72,7 +85,10 @@ async def main(dry_run: bool) -> None:
         elif not passed and not model_says_missing:
             print(f"\n!  {requirement}: code says it fails, model did not flag it")
 
-    print(f"\n-> application would request review depth {result['review_depth']}")
+    # `score` answers are unrounded positions on the rubric; round to a level.
+    review_depth = task.questions["review_depth"]
+    assert isinstance(review_depth, Score)
+    print(f"\n-> review needed: {review_depth.levels[round(result['review_depth'])]}")
 
 
 if __name__ == "__main__":

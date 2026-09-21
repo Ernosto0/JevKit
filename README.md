@@ -17,20 +17,22 @@ It is not a chatbot, an agent framework, or a text-generation library.
 
 ## Project status
 
-**Pre-alpha. Not usable against a real provider yet.**
+**Pre-alpha, but it talks to the real API.**
 
 The core library, policy engine, validation, tracing, benchmark runner, CLI, HTTP API and
-dashboard shell are in place and tested. What is **not** done:
+dashboard shell are in place and tested. The Jev wire mapping in
+[`packages/jevkit/providers/jev/schema.py`](packages/jevkit/providers/jev/schema.py) was
+verified end to end against `jev-1.13.0` on 2026-09-21 — request shape, all three question
+types, response parsing, usage and the error contract. `SCHEMA_VERIFIED` is `True` and
+`GET /health` reports it. The captured payloads and every decision behind the mapping are in
+[`docs/jev-api-notes.md`](docs/jev-api-notes.md); re-run the probe yourself with
+`python scripts/verify_jev_api.py`.
 
-> ⚠️ **The Jev request and response mapping is provisional and unverified.**
-> Everything Jev-specific lives in
-> [`packages/jevkit/providers/jev/schema.py`](packages/jevkit/providers/jev/schema.py), which is
-> written against a guessed wire format. Phase 1 of the [roadmap](#roadmap) exists to replace it
-> with the documented API contract. Until `SCHEMA_VERIFIED` is `True`, treat any result from a
-> real call as unvalidated. `GET /health` reports this flag so it cannot be forgotten.
+Get an API key from **<https://console.typesafe.ai/settings/keys>**. Keys issued by `jevai.org`
+are for a different service and will return `401` here.
 
-Everything in this repository runs today against the built-in stub provider, which is how the
-tests and `--dry-run` examples work without credentials or spend.
+Everything also runs against the built-in stub provider, which is how the tests and `--dry-run`
+examples work without credentials or spend.
 
 ---
 
@@ -120,9 +122,9 @@ for line in trace.summary():
    0.0ms  input_validated
    0.0ms  policy_resolved    {'primary': 'jev', 'fallback': None, 'max_retries': 1}
    0.1ms  provider_call      {'provider': 'jev', 'attempt': 1}
- 142.7ms  response_parsed    {'provider': 'jev', 'model': 'jev-1'}
- 142.8ms  output_validated   {'ok': True, 'failures': []}
- 142.9ms  completed          {'status': 'accepted'}
+ 925.9ms  response_parsed    {'provider': 'jev', 'model': 'jev-1.13.0'}
+ 926.0ms  output_validated   {'ok': True, 'failures': []}
+ 926.0ms  completed          {'status': 'accepted'}
 ```
 
 ### Try it with no credentials
@@ -135,15 +137,26 @@ python examples/support-routing/run.py --dry-run
 
 ## Question types
 
-| Type | Answer | Validated against |
-|---|---|---|
-| `Choice` | one option | membership in a closed set |
-| `Selection` | zero or more options | membership, uniqueness, min/max count |
-| `Noul` | a probability in `[0, 1]` | numeric range |
-| `Scalar` | a number | an explicit inclusive range |
-| `Rank` | an ordering | must be a full permutation of the options |
+| Type | Answer | Validated against | Jev |
+|---|---|---|---|
+| `Noul` | a probability in `[0, 1]` | numeric range | ✅ |
+| `Choice` | one option | membership in a closed set | ✅ |
+| `Score` | a position on a rubric | `[0, len(levels) - 1]` | ✅ |
+| `Selection` | zero or more options | membership, uniqueness, min/max count | ❌ |
+| `Scalar` | a number | an explicit inclusive range | ❌ |
+| `Rank` | an ordering | must be a full permutation of the options | ❌ |
 
 An answer that fails validation is **never** returned as accepted.
+
+Jev implements three question types. The other three are part of JevKit's
+provider-agnostic vocabulary, and the Jev adapter rejects them with a
+`TaskDefinitionError` before making a request rather than sending something the
+API will refuse. To express "pick several" with Jev, ask one `Noul` per option —
+each answer then carries its own probability.
+
+`Score` answers are deliberately **unrounded**: `2.94` on a four-level rubric
+means "almost exactly the top level". Round it yourself if you only want the
+bucket.
 
 ---
 
@@ -292,7 +305,7 @@ Application / Agent
 packages/jevkit/          The installable SDK
   client/                 DecisionClient and the execution engine
   decisions/              Tasks, question types, normalized results
-  providers/jev/          Jev adapter (schema.py is the unverified part)
+  providers/jev/          Jev adapter (schema.py holds the wire mapping)
   policies/               Explicit execution policies
   validation/             Output validation
   tracing/                Execution traces and sinks
@@ -353,8 +366,9 @@ See [`docs/security.md`](docs/security.md).
 
 ## Contributing
 
-Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). The most useful thing
-right now is Phase 1: verifying the real Jev API contract.
+Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Phase 1 (verifying the
+Jev API contract) is done; the most useful thing right now is Phase 3: benchmark datasets and a
+reference provider to compare Jev against.
 
 ---
 

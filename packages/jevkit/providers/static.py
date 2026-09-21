@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from jevkit.decisions.questions import Choice, Noul, Rank, Scalar, Selection
+from jevkit.decisions.questions import Choice, Noul, Rank, Scalar, Score, Selection
 from jevkit.providers.base import ModelProvider, ProviderRequest, ProviderResponse
 
 __all__ = ["StaticProvider"]
@@ -62,6 +62,8 @@ def _placeholder(question: Any) -> Any:
         return list(question.options[: max(question.min_selected, 1)])
     if isinstance(question, Scalar):
         return (question.minimum + question.maximum) / 2
+    if isinstance(question, Score):
+        return question.maximum / 2
     if isinstance(question, Rank):
         return list(question.options)
     raise TypeError(f"No placeholder for question type {type(question).__name__}")

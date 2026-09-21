@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from jevkit.decisions.questions import Choice, Noul, Question, Rank, Scalar, Selection
+from jevkit.decisions.questions import Choice, Noul, Question, Rank, Scalar, Score, Selection
 from jevkit.decisions.task import DecisionTask
 
 __all__ = ["ValidationReport", "validate_decisions"]
@@ -85,6 +85,16 @@ def _check_answer(key: str, question: Question, value: Any) -> list[str]:
             return [f"{key}: expected a number, got {type(value).__name__}"]
         if not question.minimum <= float(value) <= question.maximum:
             return [f"{key}: {value} is outside [{question.minimum}, {question.maximum}]"]
+        return []
+
+    if isinstance(question, Score):
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return [f"{key}: expected a rubric position, got {type(value).__name__}"]
+        if not 0.0 <= float(value) <= question.maximum:
+            return [
+                f"{key}: score {value} is outside [0, {question.maximum}] "
+                f"for a {len(question.levels)}-level rubric"
+            ]
         return []
 
     if isinstance(question, Rank):

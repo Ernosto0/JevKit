@@ -1,6 +1,6 @@
 {
   "name": "requirement-checks",
-  "version": "1",
+  "version": "2",
   "description": "Check whether a produced artifact satisfies explicit requirements.",
   "instructions": "Judge only against the listed requirements. A model check complements deterministic validation; it does not replace it.",
   "input_fields": ["artifact", "requirements"],
@@ -10,17 +10,34 @@
       "instructions": "Does the artifact satisfy every listed requirement?",
       "threshold": 0.5
     },
-    "missing_requirements": {
-      "kind": "selection",
-      "instructions": "Which listed requirements are not satisfied?",
-      "options": ["has_title", "has_summary", "cites_sources", "under_word_limit"],
-      "min_selected": 0
+    "unmet_has_title": {
+      "kind": "noul",
+      "instructions": "Is the 'has_title' requirement unsatisfied? The artifact must open with a title heading.",
+      "threshold": 0.5
+    },
+    "unmet_has_summary": {
+      "kind": "noul",
+      "instructions": "Is the 'has_summary' requirement unsatisfied? The artifact must contain a summary.",
+      "threshold": 0.5
+    },
+    "unmet_cites_sources": {
+      "kind": "noul",
+      "instructions": "Is the 'cites_sources' requirement unsatisfied? Claims must cite a source.",
+      "threshold": 0.5
+    },
+    "unmet_under_word_limit": {
+      "kind": "noul",
+      "instructions": "Is the 'under_word_limit' requirement unsatisfied? The artifact must be at most 200 words.",
+      "threshold": 0.5
     },
     "review_depth": {
-      "kind": "scalar",
-      "instructions": "How much additional human review does this need? 0 = none, 1 = full review.",
-      "minimum": 0.0,
-      "maximum": 1.0
+      "kind": "score",
+      "instructions": "How much additional human review does this artifact need?",
+      "levels": [
+        "None: ship as is",
+        "Spot check: skim the flagged sections",
+        "Full review: a person must read it end to end"
+      ]
     }
   }
 }

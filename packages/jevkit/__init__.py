@@ -34,6 +34,7 @@ from jevkit.decisions import (
     Question,
     Rank,
     Scalar,
+    Score,
     Selection,
     ValidationStatus,
 )
@@ -75,6 +76,7 @@ __all__ = [
     "Question",
     "Rank",
     "Scalar",
+    "Score",
     "Selection",
     "StaticProvider",
     "TaskDefinitionError",

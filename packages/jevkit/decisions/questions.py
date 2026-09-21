@@ -5,9 +5,13 @@ take. Question types are provider-agnostic on purpose: the Jev adapter maps them
 onto Jev's documented question types, and any reference provider maps them onto
 its own request format.
 
-The names below mirror the SDK sketch in PLAN.md §9. The exact set of question
-types Jev supports must be confirmed against the official API before the
-adapter mapping in `jevkit.providers.jev` is finalized.
+The names below mirror the SDK sketch in PLAN.md §9.
+
+Jev implements exactly three of these -- `Noul`, `Choice` and `Score` -- as
+verified in phase 1 (see docs/jev-api-notes.md). `Selection`, `Scalar` and
+`Rank` have no Jev equivalent and are rejected by the Jev adapter with a clear
+error; they remain here because the question vocabulary is provider-agnostic
+and other adapters can support them.
 """
 
 from __future__ import annotations
@@ -16,7 +20,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-__all__ = ["Choice", "Noul", "Question", "Rank", "Scalar", "Selection"]
+__all__ = ["Choice", "Noul", "Question", "Rank", "Scalar", "Score", "Selection"]
 
 
 class _BaseQuestion(BaseModel):
@@ -51,12 +55,50 @@ class Choice(_BaseQuestion):
 
     kind: Literal["choice"] = "choice"
     options: tuple[str, ...] = Field(min_length=2)
+    descriptions: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Optional per-option guidance. Jev decides against these criteria, so "
+            "describing the options materially improves the answer. Keys must be options."
+        ),
+    )
 
     @model_validator(mode="after")
     def _options_unique(self) -> Choice:
         if len(set(self.options)) != len(self.options):
             raise ValueError("Choice options must be unique")
+        unknown = sorted(set(self.descriptions) - set(self.options))
+        if unknown:
+            raise ValueError(f"descriptions reference unknown options: {unknown}")
         return self
+
+
+class Score(_BaseQuestion):
+    """Rate the state against an ordered rubric.
+
+    The answer is the position on the rubric as an unrounded float in
+    `[0, len(levels) - 1]` -- 2.94 on a four-level rubric means "almost exactly
+    the last level". Keeping it unrounded preserves the gradation between
+    levels; round it yourself if you only want the bucket.
+    """
+
+    kind: Literal["score"] = "score"
+    levels: tuple[str, ...] = Field(
+        min_length=1,
+        max_length=10,
+        description="Rubric levels, worst to best. Jev rejects more than 10.",
+    )
+
+    @model_validator(mode="after")
+    def _levels_unique(self) -> Score:
+        if len(set(self.levels)) != len(self.levels):
+            raise ValueError("Score levels must be unique")
+        return self
+
+    @property
+    def maximum(self) -> float:
+        """Highest score this rubric can return."""
+        return float(len(self.levels) - 1)
 
 
 class Selection(_BaseQuestion):
@@ -107,7 +149,7 @@ class Rank(_BaseQuestion):
 
 
 Question = Annotated[
-    Choice | Noul | Rank | Scalar | Selection,
+    Choice | Noul | Rank | Scalar | Score | Selection,
     Field(discriminator="kind"),
 ]
 """Any supported question type, discriminated by its `kind` field."""

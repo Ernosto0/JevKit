@@ -21,11 +21,12 @@ class JevKitSettings(BaseSettings):
     )
 
     # --- Primary provider: Jev ---
-    # NOTE: the base URL and auth scheme MUST be confirmed against the current
-    # official Jev API documentation before this is used for real calls.
+    # Verified against the live API on 2026-09-21; see docs/jev-api-notes.md.
+    # Note that keys from jevai.org are NOT valid here -- that is a separate
+    # service with its own endpoint. Get a key at console.typesafe.ai.
     jev_api_key: SecretStr | None = Field(default=None, alias="JEV_API_KEY")
-    jev_base_url: str = Field(default="https://api.jev.example/v1", alias="JEV_BASE_URL")
-    jev_model: str | None = Field(default=None, alias="JEV_MODEL")
+    jev_base_url: str = Field(default="https://api.typesafe.ai/v1", alias="JEV_BASE_URL")
+    jev_model: str = Field(default="jev-latest", alias="JEV_MODEL")
 
     # --- Optional reference / fallback provider ---
     fallback_provider: str | None = None

@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from jevkit.benchmarks.dataset import BenchmarkDataset
-from jevkit.decisions.questions import Choice, Noul, Rank, Scalar, Selection
+from jevkit.decisions.questions import Choice, Noul, Rank, Scalar, Score, Selection
 from jevkit.decisions.task import DecisionTask
 from jevkit.validation.validators import validate_decisions
 
@@ -74,6 +74,8 @@ def _full_answer(task: DecisionTask) -> dict[str, object]:
             answer[key] = question.minimum
         elif isinstance(question, Rank):
             answer[key] = list(question.options)
+        elif isinstance(question, Score):
+            answer[key] = 0.0
     return answer
 
 

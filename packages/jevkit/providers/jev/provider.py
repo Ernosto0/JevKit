@@ -1,8 +1,8 @@
 """The Jev provider adapter.
 
 Transport concerns (auth, timeouts, status-code -> typed-error mapping) are
-handled here. The request/response *shape* lives in `schema.py` and is still
-provisional -- see the banner in that module.
+handled here; the request/response shape lives in `schema.py`. Both were
+verified against the live API in phase 1 -- see docs/jev-api-notes.md.
 """
 
 from __future__ import annotations
@@ -20,9 +20,19 @@ from jevkit.errors import (
     ProviderTimeoutError,
 )
 from jevkit.providers.base import ModelProvider, ProviderRequest, ProviderResponse
-from jevkit.providers.jev.schema import build_request_payload, parse_response_payload
+from jevkit.providers.jev.schema import (
+    build_request_payload,
+    parse_response_payload,
+    parse_usage,
+)
 
-__all__ = ["JevProvider"]
+__all__ = ["DEFAULT_MODEL", "ENDPOINT", "JevProvider"]
+
+ENDPOINT = "/systemone"
+"""Path appended to the base URL. Verified: `/decisions` is a 404."""
+
+DEFAULT_MODEL = "jev-latest"
+"""Sent when no model is configured. The API requires one -- omitting it is a 422."""
 
 
 class JevProvider(ModelProvider):
@@ -46,7 +56,7 @@ class JevProvider(ModelProvider):
         cfg = settings or get_settings()
         self._api_key = api_key or cfg.require_jev_api_key()
         self._base_url = (base_url or cfg.jev_base_url).rstrip("/")
-        self._model = model or cfg.jev_model
+        self._model = model or cfg.jev_model or DEFAULT_MODEL
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(
             base_url=self._base_url,
@@ -55,7 +65,7 @@ class JevProvider(ModelProvider):
         )
 
     def _auth_headers(self) -> dict[str, str]:
-        # Auth scheme is provisional; confirm against the official docs (Phase 1).
+        # Verified: no header -> 403, bad key -> 401.
         return {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
@@ -63,14 +73,12 @@ class JevProvider(ModelProvider):
         }
 
     async def decide(self, request: ProviderRequest) -> ProviderResponse:
-        payload = build_request_payload(request.task, request.state)
-        if self._model:
-            payload["model"] = self._model
+        payload = build_request_payload(request.task, request.state, model=self._model)
 
         started = time.perf_counter()
         try:
             http_response = await self._client.post(
-                "/decisions",
+                ENDPOINT,
                 json=payload,
                 timeout=request.timeout_seconds,
             )
@@ -113,6 +121,7 @@ class JevProvider(ModelProvider):
             confidence=confidence,
             model=body.get("model") or self._model,
             latency_ms=latency_ms,
+            usage=parse_usage(body),
             raw=body,
         )
 
@@ -131,10 +140,9 @@ class JevProvider(ModelProvider):
                 trace_id=trace_id,
             )
         if status == 429:
-            retry_after = response.headers.get("Retry-After")
             raise ProviderRateLimitError(
                 f"Jev rate limit reached: {detail}",
-                retry_after=float(retry_after) if retry_after else None,
+                retry_after=_retry_after_seconds(response),
                 provider=self.name,
                 status_code=status,
                 trace_id=trace_id,
@@ -160,10 +168,72 @@ class JevProvider(ModelProvider):
             await self._client.aclose()
 
 
-def _safe_detail(response: httpx.Response, limit: int = 300) -> str:
-    """Short, credential-free description of an error body."""
+def _retry_after_seconds(response: httpx.Response) -> float | None:
+    """Seconds to wait before retrying, from whichever channel carries it.
+
+    The documented SDK exposes `retry_after_ms`; a `Retry-After` header in
+    seconds is the HTTP convention. Neither has been observed live, so both are
+    read and milliseconds are normalized to seconds.
+    """
+    header = response.headers.get("Retry-After")
+    if header:
+        try:
+            return float(header)
+        except ValueError:
+            pass
+
     try:
-        text = response.text
-    except Exception:  # pragma: no cover - defensive
-        return "<unreadable body>"
+        body = response.json()
+    except ValueError:
+        return None
+    if isinstance(body, dict):
+        ms = body.get("retry_after_ms")
+        if isinstance(ms, (int, float)) and not isinstance(ms, bool):
+            return float(ms) / 1000.0
+    return None
+
+
+def _safe_detail(response: httpx.Response, limit: int = 300) -> str:
+    """Short description of an error body, with the request echo stripped out.
+
+    A 422 from Jev is FastAPI's validation format, and each entry carries an
+    `input` field that echoes the request body back -- including `state`, which
+    may hold personal data. Error messages end up in logs and traces, so only
+    the human-readable parts are extracted and `input` is never included.
+    """
+    try:
+        body = response.json()
+    except ValueError:
+        try:
+            return _clip(response.text, limit)
+        except Exception:  # pragma: no cover - defensive
+            return "<unreadable body>"
+
+    detail = body.get("detail", body) if isinstance(body, dict) else body
+
+    # 422: a list of validation failures, each echoing the request in `input`.
+    if isinstance(detail, list):
+        parts = []
+        for item in detail:
+            if isinstance(item, dict):
+                loc = ".".join(str(p) for p in item.get("loc", []) if p != "body")
+                msg = str(item.get("msg", "invalid"))
+                parts.append(f"{loc}: {msg}" if loc else msg)
+            else:
+                parts.append(str(item))
+        return _clip("; ".join(parts), limit)
+
+    # 400/401/403: {"error_type": ..., "message": ...}
+    if isinstance(detail, dict):
+        message = detail.get("message")
+        error_type = detail.get("error_type")
+        if message:
+            return _clip(f"{error_type}: {message}" if error_type else str(message), limit)
+        return _clip(str(error_type or "<no message>"), limit)
+
+    # 404 and some 400s return a bare string.
+    return _clip(str(detail), limit)
+
+
+def _clip(text: str, limit: int) -> str:
     return text[:limit].replace("\n", " ").strip() or "<empty body>"
