@@ -1,8 +1,8 @@
 """PostgreSQL persistence (PLAN.md section 15).
 
-Scaffolding for Phase 4. The engine and session factory below are ready to use;
-the ORM models are declared but not yet wired into the routes, which still run
-against `apps.api.store.InMemoryStore`.
+The ORM models below are wired into the routes through `apps.api.db_store.PostgresStore`,
+selected by setting `JEVKIT_API_PERSISTENCE=postgres` (see `apps.api.store`). Schema
+changes go through Alembic migrations in `migrations/`, not `Base.metadata.create_all`.
 
 Retention and redaction rules, not just table shapes, are part of this layer:
 `decision_traces.state` is nullable on purpose and stays NULL unless input
@@ -16,7 +16,7 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -39,6 +39,12 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+# JSONB on PostgreSQL (indexable, native binary storage); portable JSON on every
+# other dialect so `PostgresStore` can be exercised against ephemeral SQLite in
+# tests without a live Postgres (see tests/unit/test_db_store.py).
+_JSON = JSON().with_variant(JSONB(), "postgresql")
+
+
 class Base(DeclarativeBase):
     """Declarative base for every JevKit table."""
 
@@ -59,7 +65,7 @@ class DecisionTaskRow(Base):
     name: Mapped[str] = mapped_column(String(128), index=True)
     version: Mapped[str] = mapped_column(String(32), default="1")
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    definition: Mapped[dict[str, Any]] = mapped_column(_JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
@@ -68,7 +74,7 @@ class DecisionPolicyRow(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String(128))
-    definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    definition: Mapped[dict[str, Any]] = mapped_column(_JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
@@ -81,8 +87,8 @@ class DecisionRun(Base):
     model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     execution_status: Mapped[str] = mapped_column(String(32), index=True)
     validation_status: Mapped[str] = mapped_column(String(32))
-    decisions: Mapped[dict[str, Any]] = mapped_column(JSONB)
-    confidence: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    decisions: Mapped[dict[str, Any]] = mapped_column(_JSON)
+    confidence: Mapped[dict[str, Any]] = mapped_column(_JSON, default=dict)
     attempts: Mapped[int] = mapped_column(Integer, default=1)
     used_fallback: Mapped[bool] = mapped_column(default=False)
     latency_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -98,9 +104,9 @@ class DecisionTraceRow(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
     run_id: Mapped[str] = mapped_column(ForeignKey("decision_runs.id"), index=True)
-    events: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    events: Mapped[list[dict[str, Any]]] = mapped_column(_JSON)
     # NULL unless input capture is explicitly enabled; see PLAN.md section 15.
-    state: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    state: Mapped[dict[str, Any] | None] = mapped_column(_JSON, nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
@@ -134,8 +140,8 @@ class BenchmarkRun(Base):
     provider: Mapped[str] = mapped_column(String(64), index=True)
     model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     status: Mapped[str] = mapped_column(String(32), index=True)
-    policy: Mapped[dict[str, Any]] = mapped_column(JSONB)
-    report: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    policy: Mapped[dict[str, Any]] = mapped_column(_JSON)
+    report: Mapped[dict[str, Any] | None] = mapped_column(_JSON, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

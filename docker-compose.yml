@@ -29,6 +29,7 @@ services:
     env_file: [.env]
     environment:
       JEVKIT_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-jevkit}:${POSTGRES_PASSWORD:-jevkit}@db:5432/${POSTGRES_DB:-jevkit}
+      JEVKIT_API_PERSISTENCE: postgres
     ports:
       - "8000:8000"
     depends_on:

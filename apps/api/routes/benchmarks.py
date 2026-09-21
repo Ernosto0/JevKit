@@ -1,7 +1,8 @@
 """Benchmark endpoints.
 
-Phase 3 fills in dataset loading and Phase 4 gives runs durable storage. The
-contract is already fixed: starting a run returns immediately with an id, and
+Runs get durable storage when `STORE` is backed by PostgreSQL (`apps/api/store.py`).
+Dataset loading and actual execution are still Phase 3 follow-up work: the
+contract is already fixed -- starting a run returns immediately with an id, and
 results are polled.
 """
 
@@ -34,7 +35,7 @@ async def start_benchmark(request: BenchmarkStartRequest, _api_key: ApiKey) -> B
 
     Runs are billable and slow, so this never executes inline.
     """
-    task = STORE.get_task(request.task_name, request.task_version)
+    task = await STORE.get_task(request.task_name, request.task_version)
     if task is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No task named {request.task_name!r}")
 
@@ -46,7 +47,7 @@ async def start_benchmark(request: BenchmarkStartRequest, _api_key: ApiKey) -> B
         provider=request.provider,
         started_at=datetime.now(UTC),
     )
-    STORE.save_benchmark(record.model_dump(mode="json"))
+    await STORE.save_benchmark(record.model_dump(mode="json"))
 
     # TODO(phase-3): dispatch to the runner in jevkit.benchmarks and persist the
     # report. Execution is deliberately not wired up until datasets are stored.
@@ -59,7 +60,7 @@ async def start_benchmark(request: BenchmarkStartRequest, _api_key: ApiKey) -> B
     summary="Retrieve benchmark status and results",
 )
 async def get_benchmark(run_id: str, _api_key: ApiKey) -> BenchmarkRunResponse:
-    record = STORE.get_benchmark(run_id)
+    record = await STORE.get_benchmark(run_id)
     if record is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No benchmark run {run_id!r}")
     return BenchmarkRunResponse.model_validate(record)

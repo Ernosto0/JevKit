@@ -15,6 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY packages ./packages
 COPY apps/api ./apps/api
 COPY examples ./examples
+COPY alembic.ini ./alembic.ini
+COPY migrations ./migrations
 
 # Run as a non-root user.
 RUN useradd --create-home --uid 10001 jevkit && chown -R jevkit:jevkit /app
@@ -24,4 +26,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"
 
-CMD ["uvicorn", "apps.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Migrations run against JEVKIT_DATABASE_URL before the server starts (see
+# migrations/env.py and docker-compose.yml, which always provisions Postgres
+# alongside this service and points JEVKIT_API_PERSISTENCE at it).
+CMD ["sh", "-c", "alembic upgrade head && uvicorn apps.api.main:app --host 0.0.0.0 --port 8000"]

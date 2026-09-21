@@ -21,7 +21,7 @@ router = APIRouter(tags=["tasks"])
 )
 async def create_task(request: TaskCreateRequest, _api_key: ApiKey) -> TaskResponse:
     """Register a reusable, versioned decision task."""
-    if STORE.get_task(request.name, request.version) is not None:
+    if await STORE.get_task(request.name, request.version) is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             f"Task {request.name}@{request.version} already exists; bump the version instead.",
@@ -38,7 +38,7 @@ async def create_task(request: TaskCreateRequest, _api_key: ApiKey) -> TaskRespo
     except (TaskDefinitionError, ValueError) as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
-    task_id, created_at = STORE.save_task(task)
+    task_id, created_at = await STORE.save_task(task)
     return TaskResponse(
         id=task_id,
         created_at=created_at,
@@ -64,6 +64,6 @@ async def list_tasks(_api_key: ApiKey) -> TaskListResponse:
             questions=task.questions,
             input_fields=list(task.input_fields),
         )
-        for task_id, created_at, task in STORE.list_tasks()
+        for task_id, created_at, task in await STORE.list_tasks()
     ]
     return TaskListResponse(items=items, total=len(items))

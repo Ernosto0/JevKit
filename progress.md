@@ -3,17 +3,17 @@
 Working state of the project against the roadmap in [`.claude/plan.md`](.claude/plan.md) §20.
 Written for whoever (human or agent) picks this up next.
 
-**Last updated:** 2026-09-21 (reference/fallback provider implemented) · **Version:**
+**Last updated:** 2026-09-21 (PostgreSQL persistence and migrations implemented) · **Version:**
 `0.1.0.dev0` · **Branch:** `main` · **No tags yet**
 
 | Phase | Status |
 |---|---|
 | 1. Jev validation | ✅ **Done** — exit criteria met |
 | 2. Core library | ✅ **Done** — exit criteria met |
-| 3. Evaluation and fallback | 🟡 **Partial** — reference provider shipped, unverified live; runs don't persist |
-| 4. Developer API | 🟡 **Partial** — works in memory; no Postgres persistence |
+| 3. Evaluation and fallback | 🟡 **Partial** — reference provider shipped, unverified live; runs persist only when Postgres persistence (below) is turned on |
+| 4. Developer API | 🟡 **Partial** — Postgres persistence and migrations implemented, unverified against a live database |
 | 5. CLI and v0.1 release | 🟡 **Partial** — shipping tasks remain |
-| 6. Dashboard | 🟡 **Scaffolded** — pages exist, fed by in-memory data |
+| 6. Dashboard | 🟡 **Scaffolded** — pages exist; still fed by in-memory data by default |
 
 Legend: `[x]` done · `[~]` partial, see note · `[ ]` not started
 
@@ -24,7 +24,7 @@ Legend: `[x]` done · `[~]` partial, see note · `[ ]` not started
 Don't trust this file over the repo. These four commands establish the real state in a minute:
 
 ```bash
-.venv/Scripts/python.exe -m pytest -q                          # 85 passed
+.venv/Scripts/python.exe -m pytest -q                          # 112 passed
 .venv/Scripts/python.exe -m ruff check . && .venv/Scripts/python.exe -m mypy packages apps
 .venv/Scripts/python.exe scripts/verify_jev_api.py             # exit 0 = live API contract holds
 .venv/Scripts/python.exe scripts/verify_timeout_behavior.py    # exit 0 = real timeout, every layer
@@ -119,11 +119,22 @@ real API and get a validated, traced result.
 
 ## Phase 3 — Evaluation and fallback 🟡
 
-**Exit criteria: NOT YET MET.** "The same dataset can be run reproducibly through Jev and a
-reference provider" — the code path is complete and tested (mocked transport), but no one has
-actually executed `jevkit bench --provider reference` against a live account in this repo. That
-needs an `OPENAI_API_KEY` (or another OpenAI-compatible endpoint), which this environment does
-not have. Persisting runs (the "reproducibly" half) also still depends on Phase 4's Postgres work.
+**Exit criteria: PARTIALLY MET.** The reference-provider blocker that used to gate this phase is
+resolved — Jev and the reference provider can both run the same dataset through the same
+benchmark runner under the same policy today. Two things keep this from being fully met, neither
+of them the reference provider itself:
+
+1. **Unverified live.** The reference adapter is tested against a mocked transport, same rigor
+   tier as the Jev adapter's own unit tests, but nobody has run it against a real OpenAI account
+   in this repo — there's no `OPENAI_API_KEY` (or other OpenAI-compatible endpoint) configured
+   here. Jev's live path was verified in Phase 1; the reference provider's has not been.
+2. **Persistence exists but is opt-in and unverified live.** "Persist traces and benchmark runs"
+   is its own Phase 3 checklist item (`plan.md` §20, Phase 3). Phase 4's PostgreSQL persistence
+   (`apps/api/db_store.py`, below) now covers this for anything that goes through the API — set
+   `JEVKIT_API_PERSISTENCE=postgres` and run `alembic upgrade head`. It defaults to off (in-memory)
+   so tests and a quick `--reload` loop stay database-free, and — same caveat as item 1 — nobody
+   has run it against a live Postgres in this repo; see Phase 4. The SDK's own `JsonlTraceRecorder`
+   (used outside the API, e.g. by the CLI) is unaffected and still only writes local JSONL.
 
 - [x] Implement benchmark dataset format — JSONL + `dataset.meta.json` with required `methodology`
 - [x] Implement benchmark runner — works live: `acc=0.875 f1=0.867` on support-routing
@@ -144,20 +155,34 @@ not have. Persisting runs (the "reproducibly" half) also still depends on Phase 
       independent adapters (`JevProvider` primary failing, `ReferenceProvider` fallback
       succeeding) composed through `DecisionEngine`, each over its own mocked HTTP transport
       (`tests/unit/test_fallback_with_real_providers.py`). Still mocked, not live.
-- [~] Persist traces and benchmark runs — `JsonlTraceRecorder` works; nothing persists to a DB
+- [~] Persist traces and benchmark runs — `JsonlTraceRecorder` still only writes local JSONL;
+      DB persistence for decisions/traces/tasks/benchmark runs now exists via the API's
+      `PostgresStore` (Phase 4), but it's opt-in (`JEVKIT_API_PERSISTENCE=postgres`) and unverified
+      against a live database
 
 ## Phase 4 — Developer API 🟡
 
-**Exit criteria: PARTIALLY MET.** The core is usable over a documented HTTP API, but nothing
-survives a restart.
+**Exit criteria: PARTIALLY MET.** The core is usable over a documented HTTP API. Persistence is
+now implemented end to end, but nobody has pointed it at a real running Postgres in this repo —
+same "implemented, unverified live" shape as the reference provider in Phase 3.
 
 - [x] Implement FastAPI decision endpoints — `POST /v1/decisions`
 - [x] Add task endpoints — `POST /v1/tasks`, `GET /v1/tasks`
 - [x] Add trace retrieval — `GET /v1/traces/{trace_id}`
 - [x] Add API-key authentication — warns loudly when unset
-- [ ] **Add PostgreSQL persistence and migrations** — `apps/api/db.py` declares the ORM models
-      but routes still run against `apps.api.store.InMemoryStore`; there is no migrations
-      directory and Alembic is installed but unconfigured
+- [x] **Add PostgreSQL persistence and migrations** — `apps/api/store.py` defines the `Store`
+      protocol; `apps/api/db_store.py`'s `PostgresStore` implements it against the ORM models in
+      `apps/api/db.py`, and `apps/api/routes/*` now `await` the store instead of assuming
+      in-memory. Selected with `JEVKIT_API_PERSISTENCE=postgres` (default stays `memory`, which is
+      what tests and a bare `--reload` use — no DB required). Alembic is wired up under
+      `migrations/`, with one hand-written initial migration covering all eight tables from
+      `plan.md` §15; `alembic upgrade head --sql` confirms it compiles to valid PostgreSQL DDL, and
+      `docker-compose.yml`/`docker/api.Dockerfile` run it automatically before the server starts.
+      **Not yet run against a live Postgres** — this sandbox has none. What stands in for that:
+      `tests/unit/test_db_store.py` exercises `PostgresStore`'s full read/write surface (decisions,
+      traces, tasks, task versioning, benchmarks) against ephemeral SQLite via a JSON/JSONB column
+      variant in `db.py`, which is a structural check on the row↔pydantic mapping, not a
+      substitute for verifying the migration against real Postgres before depending on it.
 - [x] Add health endpoint and OpenAPI docs — `/health` (unprefixed) reports `jev_schema_verified`
 - [x] Add integration tests
 - [x] Add Docker Compose setup
@@ -186,8 +211,10 @@ React + TypeScript app under `apps/dashboard/`. All seven pages are scaffolded a
 - [~] Trace viewer — exists (`TraceTimeline` component)
 - [~] Benchmark comparison page — exists
 - [~] Settings and policy views — exist
-- [ ] **Verify that all displayed metrics are sourced from real stored runs** — cannot pass
-      while the API is backed by `InMemoryStore`; blocked on Phase 4 persistence
+- [ ] **Verify that all displayed metrics are sourced from real stored runs** — Phase 4 now has a
+      persistence path (`JEVKIT_API_PERSISTENCE=postgres`); this item is blocked on actually
+      running the API against a live Postgres with that flag set and confirming the dashboard's
+      pages reflect it, which hasn't happened yet — no Postgres instance in this environment
 
 ---
 
@@ -199,8 +226,9 @@ React + TypeScript app under `apps/dashboard/`. All seven pages are scaffolded a
 - [x] Retry and fallback limits are enforced
 - [x] Every execution can produce a trace
 - [x] A benchmark can run on a labeled dataset
-- [~] Metrics are reproducible and their methodology is documented — methodology yes; runs are
-      not persisted, so reproducibility is by re-running, not by record
+- [~] Metrics are reproducible and their methodology is documented — methodology yes; a
+      persistence path now exists (Phase 4) but is opt-in and unverified live, so in practice
+      reproducibility today is still by re-running, not by a confirmed durable record
 - [x] The Python SDK works without the dashboard
 - [x] API documentation and examples are complete
 - [ ] A fresh install succeeds using the documented steps — never tested
@@ -222,8 +250,11 @@ In dependency order — each unblocks the next.
    have; (b) per step 1, decide how any resulting comparison will be presented (private-only,
    separate-not-head-to-head, or with TypeSafe's written permission) before building toward a
    public "vs." benchmark.
-3. **Wire PostgreSQL persistence + migrations** (Phase 4). Unblocks Phase 6's "real stored
-   runs" requirement and MVP reproducibility.
+3. ~~Wire PostgreSQL persistence + migrations~~ **Implemented 2026-09-21** (Phase 4) —
+   `apps/api/db_store.py`, `migrations/`, opt-in via `JEVKIT_API_PERSISTENCE=postgres`. What's
+   left here: run `alembic upgrade head` and the API against a real Postgres instance (this
+   environment has none) to confirm it live, the way Phase 1 verified Jev live; only then does
+   Phase 6's "real stored runs" requirement and full MVP reproducibility actually close out.
 4. **Verify a clean install in a fresh venv** (Phase 5). Likely to surface packaging gaps.
 5. **Then** publish benchmark results and tag v0.1.
 
@@ -232,7 +263,8 @@ real response for either provider (deliberately, for Jev — see above; the refe
 429/5xx handling is written and mocked-tested only, for the same reason plus the more basic one
 that no live key has been supplied at all); timeout handling has met a real response, live, for
 Jev only; the labeled datasets are synthetic and still small (35 rows total, up from 18), which is
-too thin to claim anything about accuracy.
+too thin to claim anything about accuracy; PostgreSQL persistence is implemented and tested against
+SQLite but has never been run against a live Postgres in this repo.
 
 ---
 

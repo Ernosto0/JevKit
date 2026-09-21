@@ -1,8 +1,7 @@
 """Decision and trace endpoints (PLAN.md section 14).
 
-Persistence is not wired up yet -- Phase 4 replaces the in-memory store below
-with the PostgreSQL models in `apps/api/db.py`. The HTTP contract is stable
-regardless of which store backs it.
+`STORE` may be backed by memory or PostgreSQL (`apps/api/store.py`); the HTTP
+contract is stable regardless of which store backs it.
 """
 
 from __future__ import annotations
@@ -36,7 +35,7 @@ async def create_decision(
     """
     task = None
     if request.task_name is not None:
-        task = STORE.get_task(request.task_name, request.task_version)
+        task = await STORE.get_task(request.task_name, request.task_version)
         if task is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -58,7 +57,7 @@ async def create_decision(
         # Surface a provider failure without leaking credentials or internals.
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, exc.message) from exc
 
-    STORE.save_decision(result, trace)
+    await STORE.save_decision(result, trace)
     return DecisionResponse.from_result(result)
 
 
@@ -68,7 +67,7 @@ async def create_decision(
     summary="Retrieve a decision",
 )
 async def get_decision(decision_id: str, _api_key: ApiKey) -> DecisionResponse:
-    result = STORE.get_decision(decision_id)
+    result = await STORE.get_decision(decision_id)
     if result is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No decision {decision_id!r}")
     return DecisionResponse.from_result(result)
@@ -80,7 +79,7 @@ async def get_decision(decision_id: str, _api_key: ApiKey) -> DecisionResponse:
     summary="Retrieve an execution trace",
 )
 async def get_trace(trace_id: str, _api_key: ApiKey) -> TraceResponse:
-    trace: DecisionTrace | None = STORE.get_trace(trace_id)
+    trace: DecisionTrace | None = await STORE.get_trace(trace_id)
     if trace is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No trace {trace_id!r}")
     return TraceResponse.from_trace(trace)

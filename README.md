@@ -236,6 +236,11 @@ decision logic.
 uvicorn apps.api.main:app --reload     # http://localhost:8000/docs
 ```
 
+By default the service runs against `InMemoryStore` -- nothing survives a restart, which is
+what the test suite and a quick `--reload` loop want. Set `JEVKIT_API_PERSISTENCE=postgres`
+and run `alembic upgrade head` first to persist decisions, traces, tasks and benchmark runs to
+PostgreSQL instead; `docker compose up` does both for you.
+
 | Endpoint | Purpose |
 |---|---|
 | `POST /v1/decisions` | Execute a decision |
@@ -342,7 +347,7 @@ cd apps/dashboard && npm run build && npm run lint
 | 1 | Verify the Jev API; replace the provisional wire mapping | **next** |
 | 2 | Core library: tasks, adapter, client, validation, policies | scaffolded |
 | 3 | Benchmark runner, metrics, fallback provider | partial |
-| 4 | FastAPI service, PostgreSQL persistence, migrations | partial |
+| 4 | FastAPI service, PostgreSQL persistence, migrations | partial — persistence unverified against a live Postgres |
 | 5 | CLI, examples, docs, v0.1 release | partial |
 | 6 | Dashboard (v0.2) | shell only |
 
@@ -367,8 +372,10 @@ See [`docs/security.md`](docs/security.md).
 ## Contributing
 
 Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Phases 1-3 (verifying the
-Jev API contract, the core library, and a reference/fallback provider) are done; the most useful
-thing right now is Phase 4: PostgreSQL persistence and migrations.
+Jev API contract, the core library, and a reference/fallback provider) are done, and Phase 4's
+PostgreSQL persistence and migrations are implemented (`apps/api/db_store.py`, `migrations/`) but
+have not been run against a live Postgres instance — the most useful thing right now is verifying
+that, then a clean install in a fresh environment ahead of the v0.1 tag.
 
 ---
 

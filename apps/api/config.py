@@ -6,6 +6,8 @@ Provider credentials stay server-side and are never returned to clients
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -32,6 +34,11 @@ class ApiSettings(BaseSettings):
         default="postgresql+asyncpg://jevkit:jevkit@localhost:5432/jevkit",
         alias="JEVKIT_DATABASE_URL",
     )
+
+    # "memory" needs no database and is what tests and local `uvicorn --reload`
+    # runs use by default. Set to "postgres" (and run `alembic upgrade head`)
+    # for anything that must survive a restart.
+    persistence: Literal["memory", "postgres"] = "memory"
 
     cors_origins: str = "http://localhost:5173"
     max_request_bytes: int = 256_000
