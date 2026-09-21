@@ -91,6 +91,7 @@ Every stage emits a trace event, so any outcome is explainable after the fact.
 | `tracing/recorder.py` | Trace sinks (null by default, JSONL for local dev) |
 | `providers/base.py` | `ModelProvider` contract |
 | `providers/jev/` | Jev transport and wire mapping |
+| `providers/reference/` | Reference/fallback adapter — OpenAI-compatible structured outputs |
 | `providers/static.py` | Deterministic stub for tests and dry runs |
 | `providers/registry.py` | Name → provider lookup |
 | `benchmarks/` | Datasets, metrics, runner |

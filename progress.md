@@ -3,14 +3,14 @@
 Working state of the project against the roadmap in [`.claude/plan.md`](.claude/plan.md) §20.
 Written for whoever (human or agent) picks this up next.
 
-**Last updated:** 2026-09-21 (timeout probe + terms-of-use review added) · **Version:**
+**Last updated:** 2026-09-21 (reference/fallback provider implemented) · **Version:**
 `0.1.0.dev0` · **Branch:** `main` · **No tags yet**
 
 | Phase | Status |
 |---|---|
 | 1. Jev validation | ✅ **Done** — exit criteria met |
 | 2. Core library | ✅ **Done** — exit criteria met |
-| 3. Evaluation and fallback | 🟡 **Partial** — blocked on a reference provider |
+| 3. Evaluation and fallback | 🟡 **Partial** — reference provider shipped, unverified live; runs don't persist |
 | 4. Developer API | 🟡 **Partial** — works in memory; no Postgres persistence |
 | 5. CLI and v0.1 release | 🟡 **Partial** — shipping tasks remain |
 | 6. Dashboard | 🟡 **Scaffolded** — pages exist, fed by in-memory data |
@@ -119,8 +119,11 @@ real API and get a validated, traced result.
 
 ## Phase 3 — Evaluation and fallback 🟡
 
-**Exit criteria: NOT MET.** "The same dataset can be run reproducibly through Jev and a
-reference provider" — there is no reference provider yet, only a stub.
+**Exit criteria: NOT YET MET.** "The same dataset can be run reproducibly through Jev and a
+reference provider" — the code path is complete and tested (mocked transport), but no one has
+actually executed `jevkit bench --provider reference` against a live account in this repo. That
+needs an `OPENAI_API_KEY` (or another OpenAI-compatible endpoint), which this environment does
+not have. Persisting runs (the "reproducibly" half) also still depends on Phase 4's Postgres work.
 
 - [x] Implement benchmark dataset format — JSONL + `dataset.meta.json` with required `methodology`
 - [x] Implement benchmark runner — works live: `acc=0.875 f1=0.867` on support-routing
@@ -128,9 +131,19 @@ reference provider" — there is no reference provider yet, only a stub.
 - [x] Add probability/calibration metrics — Brier, ECE
 - [~] Record latency and cost metadata — latency and token counts recorded; `usage.cost_usd`
       is deliberately left `None` (hardcoding $42/B would silently go stale)
-- [ ] **Implement one reference/fallback provider** ← the blocker for this phase
-- [~] Add fallback policies — the engine and policy support fallback and it is unit-tested with
-      stubs, but no real second provider has ever exercised the path
+- [x] **Implement one reference/fallback provider** — `packages/jevkit/providers/reference/`,
+      registered as `"reference"`. Calls an OpenAI-compatible Chat Completions API with
+      JSON-schema structured outputs, so unlike the Jev adapter it supports JevKit's full
+      question vocabulary (`Noul`, `Choice`, `Score`, `Selection`, `Scalar`, `Rank`), not just
+      Jev's three. Wired into `config.py` (`JEVKIT_FALLBACK_*`), `.env.example`, the registry,
+      and `jevkit providers`. Request/response mapping and error handling (auth, rate limit,
+      timeout, 5xx, malformed content, model refusal) are tested against a mocked transport —
+      same rigor tier as the Jev adapter's own unit tests, but **not exercised against a live
+      OpenAI account**, exactly the kind of gap flagged for Jev's own 429/5xx handling above.
+- [x] Add fallback policies — previously stub-only; now additionally proven with two real,
+      independent adapters (`JevProvider` primary failing, `ReferenceProvider` fallback
+      succeeding) composed through `DecisionEngine`, each over its own mocked HTTP transport
+      (`tests/unit/test_fallback_with_real_providers.py`). Still mocked, not live.
 - [~] Persist traces and benchmark runs — `JsonlTraceRecorder` works; nothing persists to a DB
 
 ## Phase 4 — Developer API 🟡
@@ -203,19 +216,23 @@ In dependency order — each unblocks the next.
    [`docs/jev-api-notes.md`](docs/jev-api-notes.md). It did not close clean: §2.3(b) of the MCA
    is a real risk to publishing any "Jev vs. reference provider" comparison. **Get a decision on
    that before step 2 turns into a published benchmark.**
-2. **Build a reference/fallback provider** (Phase 3's blocker). Unblocks the fallback path and
-   provider comparison — but per step 1, decide how any resulting comparison will be presented
-   (private-only, separate-not-head-to-head, or with TypeSafe's written permission) before
-   building toward a public "vs." benchmark.
+2. ~~Build a reference/fallback provider~~ **Done 2026-09-21** — `packages/jevkit/providers/reference/`,
+   an OpenAI-compatible adapter, registered as `"reference"`; see Phase 3 above. What's left here:
+   (a) actually run it against a live account — needs `OPENAI_API_KEY` this environment doesn't
+   have; (b) per step 1, decide how any resulting comparison will be presented (private-only,
+   separate-not-head-to-head, or with TypeSafe's written permission) before building toward a
+   public "vs." benchmark.
 3. **Wire PostgreSQL persistence + migrations** (Phase 4). Unblocks Phase 6's "real stored
    runs" requirement and MVP reproducibility.
 4. **Verify a clean install in a fresh venv** (Phase 5). Likely to surface packaging gaps.
 5. **Then** publish benchmark results and tag v0.1.
 
 Smaller loose ends: `usage.cost_usd` is never populated; `429`/`5xx` handling has never met a
-real response (deliberately — see above; timeout handling now has, live, at every layer); the
-labeled datasets are synthetic and still small (35 rows total, up from 18), which is too thin to
-claim anything about accuracy.
+real response for either provider (deliberately, for Jev — see above; the reference provider's
+429/5xx handling is written and mocked-tested only, for the same reason plus the more basic one
+that no live key has been supplied at all); timeout handling has met a real response, live, for
+Jev only; the labeled datasets are synthetic and still small (35 rows total, up from 18), which is
+too thin to claim anything about accuracy.
 
 ---
 

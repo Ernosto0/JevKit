@@ -38,9 +38,11 @@ def build_provider(name: str, **kwargs: object) -> ModelProvider:
 
 def _register_builtins() -> None:
     from jevkit.providers.jev.provider import JevProvider
+    from jevkit.providers.reference.provider import ReferenceProvider
     from jevkit.providers.static import StaticProvider
 
     register_provider("jev", JevProvider)
+    register_provider("reference", ReferenceProvider)
     register_provider("static", StaticProvider)
 
 

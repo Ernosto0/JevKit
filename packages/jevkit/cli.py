@@ -71,6 +71,8 @@ def providers() -> None:
     table = Table("provider", "notes")
     for name in known_providers():
         note = "primary provider" if name == "jev" else ""
+        if name == "reference":
+            note = "reference/fallback; OpenAI-compatible, needs JEVKIT_FALLBACK_API_KEY"
         if name == "static":
             note = "deterministic stub; never benchmark this as a model"
         table.add_row(name, note)

@@ -55,6 +55,18 @@ class JevKitSettings(BaseSettings):
             )
         return self.jev_api_key.get_secret_value()
 
+    def require_fallback_api_key(self) -> str:
+        """Return the reference/fallback provider's API key or raise a clear error."""
+        from jevkit.errors import ConfigurationError
+
+        if self.fallback_api_key is None:
+            raise ConfigurationError(
+                "No reference/fallback provider API key configured. Set "
+                "JEVKIT_FALLBACK_API_KEY in the environment or pass api_key= "
+                "explicitly when constructing the provider."
+            )
+        return self.fallback_api_key.get_secret_value()
+
 
 _settings: JevKitSettings | None = None
 

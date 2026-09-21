@@ -107,6 +107,23 @@ Numbers produced from them must not be published as benchmark results.
 - [ ] Demo and illustrative numbers are clearly separated from measured ones.
 - [ ] The claim being made is scoped to the task that was measured.
 
+## The reference provider
+
+`--provider reference` (`packages/jevkit/providers/reference/`) calls an OpenAI-compatible Chat
+Completions API using JSON-schema structured outputs. It is not assumed to be more accurate than
+Jev, and it supports the full provider-agnostic question vocabulary (`Noul`, `Choice`, `Score`,
+`Selection`, `Scalar`, `Rank`), unlike the Jev adapter, which only implements the three types Jev
+documents. Set `JEVKIT_FALLBACK_PROVIDER=reference` and `JEVKIT_FALLBACK_API_KEY` to use it; see
+`.env.example`. It has been verified against a mocked transport, not a live account — nothing in
+this repo has spent against it.
+
+**Running `jevkit bench --provider reference` next to `jevkit bench --provider jev` on the same
+dataset does not by itself clear this benchmark for publishing.** The "Terms of use" section of
+[`docs/jev-api-notes.md`](jev-api-notes.md) flags an open item (Master Customer Agreement
+§2.3(b), which bears on any public "Jev vs. X" comparison) that still applies to whatever numbers
+this produces. Run it, inspect it, keep it private — do not publish a head-to-head number from it
+without resolving that first.
+
 ## Things not to say
 
 - "Jev is more accurate." — Accurate at what, on which data, against what?

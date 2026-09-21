@@ -341,7 +341,7 @@ cd apps/dashboard && npm run build && npm run lint
 |---|---|---|
 | 1 | Verify the Jev API; replace the provisional wire mapping | **next** |
 | 2 | Core library: tasks, adapter, client, validation, policies | scaffolded |
-| 3 | Benchmark runner, metrics, fallback provider | scaffolded |
+| 3 | Benchmark runner, metrics, fallback provider | partial |
 | 4 | FastAPI service, PostgreSQL persistence, migrations | partial |
 | 5 | CLI, examples, docs, v0.1 release | partial |
 | 6 | Dashboard (v0.2) | shell only |
@@ -366,9 +366,9 @@ See [`docs/security.md`](docs/security.md).
 
 ## Contributing
 
-Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Phase 1 (verifying the
-Jev API contract) is done; the most useful thing right now is Phase 3: benchmark datasets and a
-reference provider to compare Jev against.
+Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Phases 1-3 (verifying the
+Jev API contract, the core library, and a reference/fallback provider) are done; the most useful
+thing right now is Phase 4: PostgreSQL persistence and migrations.
 
 ---
 
