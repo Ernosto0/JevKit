@@ -62,10 +62,10 @@ all = ["jevkit[cli,api,benchmarks]"]
 jevkit = "jevkit.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/cinaraksoy/jevkit"
-Repository = "https://github.com/cinaraksoy/jevkit"
-Issues = "https://github.com/cinaraksoy/jevkit/issues"
-Changelog = "https://github.com/cinaraksoy/jevkit/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/Ernosto0/JevKit"
+Repository = "https://github.com/Ernosto0/JevKit"
+Issues = "https://github.com/Ernosto0/JevKit/issues"
+Changelog = "https://github.com/Ernosto0/JevKit/blob/main/CHANGELOG.md"
 
 # ---------------------------------------------------------------------------
 # Build: the installable package lives at packages/jevkit and maps to `jevkit`.

@@ -5,7 +5,7 @@
 Please do not open a public issue for a security problem.
 
 Report it privately through GitHub's [private vulnerability
-reporting](https://github.com/cinaraksoy/jevkit/security/advisories/new). Include what you
+reporting](https://github.com/Ernosto0/JevKit/security/advisories/new). Include what you
 found, how to reproduce it, and what an attacker could do with it. You can expect an
 acknowledgement within a few days.
 

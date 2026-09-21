@@ -41,6 +41,7 @@ class ExampleOutcome(BaseModel):
 
     example_id: str
     accepted: bool
+    model: str | None = None
     decisions: dict[str, Any] = Field(default_factory=dict)
     confidence: dict[str, float] = Field(default_factory=dict)
     expected: dict[str, Any] = Field(default_factory=dict)
@@ -161,6 +162,7 @@ def _to_outcome(example: DatasetExample, result: DecisionResult) -> ExampleOutco
     return ExampleOutcome(
         example_id=example.id,
         accepted=result.accepted,
+        model=result.model,
         decisions=result.decisions,
         confidence=result.confidence,
         expected=example.expected,
@@ -187,7 +189,7 @@ def _build_report(
         task_ref=task.ref,
         dataset_ref=dataset.ref,
         provider=provider.name,
-        model=next((o.decisions.get("__model__") for o in accepted if o.decisions), None),
+        model=next((o.model for o in accepted if o.model), None),
         policy=policy,
         total_examples=total,
         accepted=len(accepted),

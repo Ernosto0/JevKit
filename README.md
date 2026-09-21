@@ -61,8 +61,8 @@ measurable instead of assumed.
 ## Install
 
 ```bash
-git clone https://github.com/cinaraksoy/jevkit.git
-cd jevkit
+git clone https://github.com/Ernosto0/JevKit.git
+cd JevKit
 
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
@@ -221,9 +221,14 @@ jevkit bench --task examples/support-routing/task.json \
 Metrics: accuracy, precision/recall/F1, Brier score, calibration error, p50/p95 latency, cost
 per 1,000 decisions, invalid-response rate, fallback rate, coverage.
 
-The datasets shipped in [`examples/`](examples/) are **synthetic and tiny** (6–8 examples). They
-exist to make the pipeline runnable — not to support any claim about a provider. See
-[`docs/benchmarking.md`](docs/benchmarking.md).
+The datasets shipped in [`examples/`](examples/) are **synthetic and tiny** (9–15 examples each,
+35 total). They exist to make the pipeline runnable — not to support any claim about a provider.
+
+Measured results from running them against Jev are published in
+[`docs/benchmark-results.md`](docs/benchmark-results.md): 100% coverage and 0% invalid responses
+across all 35 examples, accuracy from 0.455 to 1.000 depending on the question. Read the caveats
+there before quoting any of it — at this sample size the numbers describe a pipeline, not a
+provider. Method: [`docs/benchmarking.md`](docs/benchmarking.md).
 
 ---
 
@@ -344,12 +349,12 @@ cd apps/dashboard && npm run build && npm run lint
 
 | Phase | Scope | Status |
 |---|---|---|
-| 1 | Verify the Jev API; replace the provisional wire mapping | **next** |
-| 2 | Core library: tasks, adapter, client, validation, policies | scaffolded |
-| 3 | Benchmark runner, metrics, fallback provider | partial |
-| 4 | FastAPI service, PostgreSQL persistence, migrations | partial — persistence unverified against a live Postgres |
-| 5 | CLI, examples, docs, v0.1 release | partial |
-| 6 | Dashboard (v0.2) | shell only |
+| 1 | Verify the Jev API; replace the provisional wire mapping | **done** — verified live against `jev-1.13.0` |
+| 2 | Core library: tasks, adapter, client, validation, policies | **done** |
+| 3 | Benchmark runner, metrics, fallback provider | done, except the reference provider is mock-tested only — never run against a live account |
+| 4 | FastAPI service, PostgreSQL persistence, migrations | done, except persistence is unverified against a live Postgres |
+| 5 | CLI, examples, docs, v0.1 release | **done** — v0.1.0 |
+| 6 | Dashboard (v0.2) | shell only; pages need a live Postgres to show real runs |
 
 See [`.claude/plan.md`](.claude/plan.md) for the full plan.
 
@@ -371,11 +376,16 @@ See [`docs/security.md`](docs/security.md).
 
 ## Contributing
 
-Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Phases 1-3 (verifying the
-Jev API contract, the core library, and a reference/fallback provider) are done, and Phase 4's
-PostgreSQL persistence and migrations are implemented (`apps/api/db_store.py`, `migrations/`) but
-have not been run against a live Postgres instance — the most useful thing right now is verifying
-that, then a clean install in a fresh environment ahead of the v0.1 tag.
+Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Phases 1-5 are done and
+v0.1.0 is tagged. The two most useful things right now are both "implemented, never run live":
+
+1. **Run the API against a real Postgres** (`JEVKIT_API_PERSISTENCE=postgres`, `alembic upgrade
+   head`). Persistence and migrations exist (`apps/api/db_store.py`, `migrations/`) and are tested
+   against ephemeral SQLite, but no live database has ever been pointed at them. This also blocks
+   Phase 6's requirement that dashboard metrics come from real stored runs.
+2. **Run the reference provider against a live OpenAI-compatible account.** Its request/response
+   mapping is tested against a mocked transport only; nothing in this repo has ever spent against
+   it.
 
 ---
 

@@ -89,12 +89,18 @@ its labels are valid answers to its task.
 
 ## About the shipped datasets
 
-The datasets in `examples/` are **synthetic, hand-authored, and tiny** — six to eight examples
-each. They exist to make the pipeline runnable end to end and to give the metrics code
+The datasets in `examples/` are **synthetic, hand-authored, and tiny** — 9 to 15 examples each,
+35 in total. They exist to make the pipeline runnable end to end and to give the metrics code
 something real to compute.
 
 They are not large or representative enough to support any claim about a provider's accuracy.
-Numbers produced from them must not be published as benchmark results.
+
+Measured numbers from them are published in
+[`docs/benchmark-results.md`](benchmark-results.md), as a **record of what the pipeline
+measured** — single-provider, fully caveated, with the raw per-example reports alongside. That
+is the only form in which numbers from these datasets may be published. Quoting a figure from
+that page as a claim about a provider's accuracy — in a README, a release note, or a comparison
+— is exactly what the page says it does not support.
 
 ## Before publishing any number
 

@@ -1,0 +1,262 @@
+{
+  "task_ref": "agent-routing@1",
+  "dataset_ref": "agent-routing@1",
+  "provider": "jev",
+  "model": "jev-1.13.0",
+  "run_at": "2026-09-21T17:59:02.829921Z",
+  "policy": {
+    "primary_provider": "jev",
+    "fallback_provider": null,
+    "timeout_seconds": 10.0,
+    "max_retries": 1,
+    "retry_backoff_seconds": 0.5,
+    "on_provider_error": "retry_then_fallback",
+    "on_timeout": "retry_then_fallback",
+    "on_invalid_response": "fallback",
+    "on_low_confidence": "review",
+    "min_confidence": null,
+    "max_cost_usd": null
+  },
+  "total_examples": 11,
+  "accepted": 11,
+  "invalid_response_rate": 0.0,
+  "fallback_rate": 0.0,
+  "coverage": 1.0,
+  "latency_p50_ms": 363.8276000274345,
+  "latency_p95_ms": 1732.171349984128,
+  "total_cost_usd": null,
+  "cost_per_1k_decisions_usd": null,
+  "questions": [
+    {
+      "question": "route",
+      "scored": 11,
+      "accuracy": 0.8181818181818182,
+      "macro_precision": 0.8541666666666666,
+      "macro_recall": 0.875,
+      "macro_f1": 0.8309523809523809,
+      "brier_score": null,
+      "calibration_error": null
+    },
+    {
+      "question": "confident_enough_to_act",
+      "scored": 11,
+      "accuracy": 0.45454545454545453,
+      "macro_precision": null,
+      "macro_recall": null,
+      "macro_f1": null,
+      "brier_score": 0.2905,
+      "calibration_error": 0.4281818181818182
+    }
+  ],
+  "outcomes": [
+    {
+      "example_id": "ar-001",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "search",
+        "confident_enough_to_act": 0.74
+      },
+      "confidence": {
+        "route": 1.0
+      },
+      "expected": {
+        "route": "search",
+        "confident_enough_to_act": true
+      },
+      "latency_ms": 2512.6187999849208,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "ar-002",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "code",
+        "confident_enough_to_act": 0.29
+      },
+      "confidence": {
+        "route": 0.99
+      },
+      "expected": {
+        "route": "code",
+        "confident_enough_to_act": true
+      },
+      "latency_ms": 912.2816000017338,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "ar-003",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "data_analysis",
+        "confident_enough_to_act": 0.36
+      },
+      "confidence": {
+        "route": 0.98
+      },
+      "expected": {
+        "route": "data_analysis",
+        "confident_enough_to_act": true
+      },
+      "latency_ms": 951.7238999833353,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "ar-004",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "human",
+        "confident_enough_to_act": 0.21
+      },
+      "confidence": {
+        "route": 0.92
+      },
+      "expected": {
+        "route": "human",
+        "confident_enough_to_act": true
+      },
+      "latency_ms": 851.221400022041,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "ar-005",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "search",
+        "confident_enough_to_act": 0.14
+      },
+      "confidence": {
+        "route": 0.51
+      },
+      "expected": {
+        "route": "human",
+        "confident_enough_to_act": false
+      },
+      "latency_ms": 372.098800027743,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "ar-006",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "code",
+        "confident_enough_to_act": 0.46
+      },
+      "confidence": {
+        "route": 0.81
+      },
+      "expected": {
+        "route": "code",
+        "confident_enough_to_act": false
+      },
+      "latency_ms": 351.4785000006668,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "ar-007",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "search",
+        "confident_enough_to_act": 0.38
+      },
+      "confidence": {
+        "route": 0.85
+      },
+      "expected": {
+        "route": "search",
+        "confident_enough_to_act": true
+      },
+      "latency_ms": 302.16289998497814,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "ar-008",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "code",
+        "confident_enough_to_act": 0.32
+      },
+      "confidence": {
+        "route": 0.76
+      },
+      "expected": {
+        "route": "human",
+        "confident_enough_to_act": true
+      },
+      "latency_ms": 280.66469996701926,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "ar-009",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "data_analysis",
+        "confident_enough_to_act": 0.36
+      },
+      "confidence": {
+        "route": 0.27
+      },
+      "expected": {
+        "route": "data_analysis",
+        "confident_enough_to_act": true
+      },
+      "latency_ms": 330.7931000017561,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "ar-010",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "human",
+        "confident_enough_to_act": 0.08
+      },
+      "confidence": {
+        "route": 0.52
+      },
+      "expected": {
+        "route": "human",
+        "confident_enough_to_act": false
+      },
+      "latency_ms": 363.8276000274345,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "ar-011",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "route": "code",
+        "confident_enough_to_act": 0.31
+      },
+      "confidence": {
+        "route": 0.77
+      },
+      "expected": {
+        "route": "code",
+        "confident_enough_to_act": false
+      },
+      "latency_ms": 314.7173000033945,
+      "used_fallback": false,
+      "error": null
+    }
+  ]
+}

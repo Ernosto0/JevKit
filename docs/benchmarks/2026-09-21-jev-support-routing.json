@@ -1,0 +1,378 @@
+{
+  "task_ref": "support-routing@1",
+  "dataset_ref": "support-routing@1",
+  "provider": "jev",
+  "model": "jev-1.13.0",
+  "run_at": "2026-09-21T17:58:59.464766Z",
+  "policy": {
+    "primary_provider": "jev",
+    "fallback_provider": null,
+    "timeout_seconds": 10.0,
+    "max_retries": 1,
+    "retry_backoff_seconds": 0.5,
+    "on_provider_error": "retry_then_fallback",
+    "on_timeout": "retry_then_fallback",
+    "on_invalid_response": "fallback",
+    "on_low_confidence": "review",
+    "min_confidence": null,
+    "max_cost_usd": null
+  },
+  "total_examples": 15,
+  "accepted": 15,
+  "invalid_response_rate": 0.0,
+  "fallback_rate": 0.0,
+  "coverage": 1.0,
+  "latency_p50_ms": 304.1493000346236,
+  "latency_p95_ms": 968.3342699834611,
+  "total_cost_usd": null,
+  "cost_per_1k_decisions_usd": null,
+  "questions": [
+    {
+      "question": "department",
+      "scored": 15,
+      "accuracy": 0.8666666666666667,
+      "macro_precision": 0.9166666666666666,
+      "macro_recall": 0.7916666666666666,
+      "macro_f1": 0.8166666666666667,
+      "brier_score": null,
+      "calibration_error": null
+    },
+    {
+      "question": "urgent",
+      "scored": 15,
+      "accuracy": 1.0,
+      "macro_precision": null,
+      "macro_recall": null,
+      "macro_f1": null,
+      "brier_score": 0.049479999999999996,
+      "calibration_error": 0.17733333333333332
+    },
+    {
+      "question": "needs_escalation",
+      "scored": 15,
+      "accuracy": 0.9333333333333333,
+      "macro_precision": null,
+      "macro_recall": null,
+      "macro_f1": null,
+      "brier_score": 0.08406000000000001,
+      "calibration_error": 0.25933333333333336
+    }
+  ],
+  "outcomes": [
+    {
+      "example_id": "sr-001",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "billing",
+        "urgent": 0.54,
+        "needs_escalation": 0.24
+      },
+      "confidence": {
+        "department": 1.0
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": true,
+        "needs_escalation": false
+      },
+      "latency_ms": 932.4855000013486,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-002",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "technical",
+        "urgent": 0.71,
+        "needs_escalation": 0.7
+      },
+      "confidence": {
+        "department": 1.0
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": true,
+        "needs_escalation": true
+      },
+      "latency_ms": 921.6439999872819,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-003",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "account",
+        "urgent": 0.15,
+        "needs_escalation": 0.12
+      },
+      "confidence": {
+        "department": 1.0
+      },
+      "expected": {
+        "department": "account",
+        "urgent": false,
+        "needs_escalation": false
+      },
+      "latency_ms": 958.8788999826647,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-004",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "other",
+        "urgent": 0.03,
+        "needs_escalation": 0.04
+      },
+      "confidence": {
+        "department": 0.5
+      },
+      "expected": {
+        "department": "other",
+        "urgent": false,
+        "needs_escalation": false
+      },
+      "latency_ms": 990.3967999853194,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-005",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "technical",
+        "urgent": 0.95,
+        "needs_escalation": 0.72
+      },
+      "confidence": {
+        "department": 0.99
+      },
+      "expected": {
+        "department": "account",
+        "urgent": true,
+        "needs_escalation": true
+      },
+      "latency_ms": 383.43210000311956,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-006",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "billing",
+        "urgent": 0.23,
+        "needs_escalation": 0.38
+      },
+      "confidence": {
+        "department": 0.88
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "needs_escalation": false
+      },
+      "latency_ms": 316.59030000446364,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-007",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "technical",
+        "urgent": 0.79,
+        "needs_escalation": 0.55
+      },
+      "confidence": {
+        "department": 1.0
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": true,
+        "needs_escalation": false
+      },
+      "latency_ms": 304.1493000346236,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-008",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "billing",
+        "urgent": 0.17,
+        "needs_escalation": 0.16
+      },
+      "confidence": {
+        "department": 0.67
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "needs_escalation": false
+      },
+      "latency_ms": 304.08720002742484,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-009",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "billing",
+        "urgent": 0.94,
+        "needs_escalation": 0.83
+      },
+      "confidence": {
+        "department": 0.99
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": true,
+        "needs_escalation": true
+      },
+      "latency_ms": 283.1669999868609,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-010",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "technical",
+        "urgent": 0.09,
+        "needs_escalation": 0.17
+      },
+      "confidence": {
+        "department": 1.0
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": false,
+        "needs_escalation": false
+      },
+      "latency_ms": 288.2732000434771,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-011",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "account",
+        "urgent": 0.9,
+        "needs_escalation": 0.77
+      },
+      "confidence": {
+        "department": 0.75
+      },
+      "expected": {
+        "department": "account",
+        "urgent": true,
+        "needs_escalation": true
+      },
+      "latency_ms": 297.6183999562636,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-012",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "billing",
+        "urgent": 0.19,
+        "needs_escalation": 0.24
+      },
+      "confidence": {
+        "department": 0.91
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": false,
+        "needs_escalation": false
+      },
+      "latency_ms": 302.2327999933623,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-013",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "technical",
+        "urgent": 0.12,
+        "needs_escalation": 0.18
+      },
+      "confidence": {
+        "department": 0.93
+      },
+      "expected": {
+        "department": "other",
+        "urgent": false,
+        "needs_escalation": false
+      },
+      "latency_ms": 310.3497999836691,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-014",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "technical",
+        "urgent": 0.96,
+        "needs_escalation": 0.61
+      },
+      "confidence": {
+        "department": 1.0
+      },
+      "expected": {
+        "department": "technical",
+        "urgent": true,
+        "needs_escalation": true
+      },
+      "latency_ms": 280.22729995427653,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "sr-015",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "department": "billing",
+        "urgent": 0.53,
+        "needs_escalation": 0.44
+      },
+      "confidence": {
+        "department": 0.72
+      },
+      "expected": {
+        "department": "billing",
+        "urgent": true,
+        "needs_escalation": false
+      },
+      "latency_ms": 269.7438000468537,
+      "used_fallback": false,
+      "error": null
+    }
+  ]
+}

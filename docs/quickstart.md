@@ -3,8 +3,8 @@
 ## 1. Install
 
 ```bash
-git clone https://github.com/cinaraksoy/jevkit.git
-cd jevkit
+git clone https://github.com/Ernosto0/JevKit.git
+cd JevKit
 
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
@@ -30,12 +30,13 @@ You should see decisions, a status, and a trace with one line per lifecycle stag
 cp .env.example .env
 ```
 
-Set `JEV_API_KEY`, and confirm `JEV_BASE_URL` against the official documentation — the default
-in `.env.example` is a placeholder, not a real endpoint.
+Set `JEV_API_KEY`. The default `JEV_BASE_URL` (`https://api.typesafe.ai/v1`) is the real
+TypeSafe endpoint and the wire mapping has been verified against it (`jev-1.13.0`, 2026-09-21).
 
-> Real calls are not expected to succeed until the wire mapping in
-> `packages/jevkit/providers/jev/schema.py` has been verified. See
-> [jev-api-notes.md](jev-api-notes.md).
+> **Get your key from <https://console.typesafe.ai/settings/keys>.** Two different services
+> answer to the name "Jev": JevKit targets TypeSafe's first-party API. A key from `jevai.org`
+> is a *different service's* key and returns `401` here, which looks exactly like a broken key.
+> See [jev-api-notes.md](jev-api-notes.md).
 
 ## 4. Your first decision
 

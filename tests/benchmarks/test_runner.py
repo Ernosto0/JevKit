@@ -79,6 +79,9 @@ async def test_report_records_what_was_run() -> None:
     assert report.task_ref == "routing@1"
     assert report.dataset_ref == "tiny@1"
     assert report.provider == "keyword"
+    # The model identifier must survive into the report: docs/benchmarking.md
+    # makes it a precondition for publishing any number.
+    assert report.model == "keyword-stub"
     assert report.total_examples == 4
     assert report.policy == POLICY
 

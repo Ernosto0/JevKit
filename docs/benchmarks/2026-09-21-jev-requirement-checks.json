@@ -1,0 +1,327 @@
+{
+  "task_ref": "requirement-checks@2",
+  "dataset_ref": "requirement-checks@2",
+  "provider": "jev",
+  "model": "jev-1.13.0",
+  "run_at": "2026-09-21T17:59:05.333269Z",
+  "policy": {
+    "primary_provider": "jev",
+    "fallback_provider": null,
+    "timeout_seconds": 10.0,
+    "max_retries": 1,
+    "retry_backoff_seconds": 0.5,
+    "on_provider_error": "retry_then_fallback",
+    "on_timeout": "retry_then_fallback",
+    "on_invalid_response": "fallback",
+    "on_low_confidence": "review",
+    "min_confidence": null,
+    "max_cost_usd": null
+  },
+  "total_examples": 9,
+  "accepted": 9,
+  "invalid_response_rate": 0.0,
+  "fallback_rate": 0.0,
+  "coverage": 1.0,
+  "latency_p50_ms": 323.27280001481995,
+  "latency_p95_ms": 989.4310200237669,
+  "total_cost_usd": null,
+  "cost_per_1k_decisions_usd": null,
+  "questions": [
+    {
+      "question": "passes",
+      "scored": 9,
+      "accuracy": 0.7777777777777778,
+      "macro_precision": null,
+      "macro_recall": null,
+      "macro_f1": null,
+      "brier_score": 0.1617333333333333,
+      "calibration_error": 0.18666666666666665
+    },
+    {
+      "question": "unmet_has_title",
+      "scored": 9,
+      "accuracy": 0.7777777777777778,
+      "macro_precision": null,
+      "macro_recall": null,
+      "macro_f1": null,
+      "brier_score": 0.13316666666666666,
+      "calibration_error": 0.15666666666666665
+    },
+    {
+      "question": "unmet_has_summary",
+      "scored": 9,
+      "accuracy": 0.8888888888888888,
+      "macro_precision": null,
+      "macro_recall": null,
+      "macro_f1": null,
+      "brier_score": 0.07021111111111111,
+      "calibration_error": 0.19444444444444448
+    },
+    {
+      "question": "unmet_cites_sources",
+      "scored": 9,
+      "accuracy": 1.0,
+      "macro_precision": null,
+      "macro_recall": null,
+      "macro_f1": null,
+      "brier_score": 0.005766666666666669,
+      "calibration_error": 0.07000000000000002
+    },
+    {
+      "question": "unmet_under_word_limit",
+      "scored": 9,
+      "accuracy": 0.8888888888888888,
+      "macro_precision": null,
+      "macro_recall": null,
+      "macro_f1": null,
+      "brier_score": 0.06712222222222222,
+      "calibration_error": 0.13
+    },
+    {
+      "question": "review_depth",
+      "scored": 0,
+      "accuracy": null,
+      "macro_precision": null,
+      "macro_recall": null,
+      "macro_f1": null,
+      "brier_score": null,
+      "calibration_error": null
+    }
+  ],
+  "outcomes": [
+    {
+      "example_id": "rc-001",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "passes": 0.75,
+        "unmet_has_title": 0.04,
+        "unmet_has_summary": 0.16,
+        "unmet_cites_sources": 0.06,
+        "unmet_under_word_limit": 0.03,
+        "review_depth": 0.54
+      },
+      "confidence": {
+        "review_depth": 0.19
+      },
+      "expected": {
+        "passes": true,
+        "unmet_has_title": false,
+        "unmet_has_summary": false,
+        "unmet_cites_sources": false,
+        "unmet_under_word_limit": false
+      },
+      "latency_ms": 1002.365300024394,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "rc-002",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "passes": 0.03,
+        "unmet_has_title": 0.93,
+        "unmet_has_summary": 0.66,
+        "unmet_cites_sources": 0.95,
+        "unmet_under_word_limit": 0.07,
+        "review_depth": 1.96
+      },
+      "confidence": {
+        "review_depth": 0.94
+      },
+      "expected": {
+        "passes": false,
+        "unmet_has_title": true,
+        "unmet_has_summary": false,
+        "unmet_cites_sources": true,
+        "unmet_under_word_limit": false
+      },
+      "latency_ms": 967.111699981615,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "rc-003",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "passes": 0.03,
+        "unmet_has_title": 0.56,
+        "unmet_has_summary": 0.95,
+        "unmet_cites_sources": 0.94,
+        "unmet_under_word_limit": 0.1,
+        "review_depth": 1.99
+      },
+      "confidence": {
+        "review_depth": 0.98
+      },
+      "expected": {
+        "passes": false,
+        "unmet_has_title": false,
+        "unmet_has_summary": true,
+        "unmet_cites_sources": true,
+        "unmet_under_word_limit": false
+      },
+      "latency_ms": 957.7838000259362,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "rc-004",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "passes": 0.64,
+        "unmet_has_title": 0.04,
+        "unmet_has_summary": 0.27,
+        "unmet_cites_sources": 0.06,
+        "unmet_under_word_limit": 0.03,
+        "review_depth": 0.54
+      },
+      "confidence": {
+        "review_depth": 0.19
+      },
+      "expected": {
+        "passes": true,
+        "unmet_has_title": false,
+        "unmet_has_summary": false,
+        "unmet_cites_sources": false,
+        "unmet_under_word_limit": false
+      },
+      "latency_ms": 970.0296000228263,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "rc-005",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "passes": 0.86,
+        "unmet_has_title": 0.03,
+        "unmet_has_summary": 0.06,
+        "unmet_cites_sources": 0.15,
+        "unmet_under_word_limit": 0.24,
+        "review_depth": 0.52
+      },
+      "confidence": {
+        "review_depth": 0.22
+      },
+      "expected": {
+        "passes": false,
+        "unmet_has_title": false,
+        "unmet_has_summary": false,
+        "unmet_cites_sources": false,
+        "unmet_under_word_limit": true
+      },
+      "latency_ms": 280.26809997390956,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "rc-006",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "passes": 0.04,
+        "unmet_has_title": 0.93,
+        "unmet_has_summary": 0.91,
+        "unmet_cites_sources": 0.94,
+        "unmet_under_word_limit": 0.08,
+        "review_depth": 1.85
+      },
+      "confidence": {
+        "review_depth": 0.77
+      },
+      "expected": {
+        "passes": false,
+        "unmet_has_title": true,
+        "unmet_has_summary": true,
+        "unmet_cites_sources": true,
+        "unmet_under_word_limit": false
+      },
+      "latency_ms": 314.58040000870824,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "rc-007",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "passes": 0.7,
+        "unmet_has_title": 0.07,
+        "unmet_has_summary": 0.24,
+        "unmet_cites_sources": 0.08,
+        "unmet_under_word_limit": 0.04,
+        "review_depth": 0.7
+      },
+      "confidence": {
+        "review_depth": 0.0
+      },
+      "expected": {
+        "passes": false,
+        "unmet_has_title": true,
+        "unmet_has_summary": false,
+        "unmet_cites_sources": false,
+        "unmet_under_word_limit": false
+      },
+      "latency_ms": 298.28160000033677,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "rc-008",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "passes": 0.07,
+        "unmet_has_title": 0.05,
+        "unmet_has_summary": 0.08,
+        "unmet_cites_sources": 0.95,
+        "unmet_under_word_limit": 0.03,
+        "review_depth": 1.47
+      },
+      "confidence": {
+        "review_depth": 0.2
+      },
+      "expected": {
+        "passes": false,
+        "unmet_has_title": false,
+        "unmet_has_summary": false,
+        "unmet_cites_sources": true,
+        "unmet_under_word_limit": false
+      },
+      "latency_ms": 289.6062999498099,
+      "used_fallback": false,
+      "error": null
+    },
+    {
+      "example_id": "rc-009",
+      "accepted": true,
+      "model": "jev-1.13.0",
+      "decisions": {
+        "passes": 0.84,
+        "unmet_has_title": 0.06,
+        "unmet_has_summary": 0.14,
+        "unmet_cites_sources": 0.06,
+        "unmet_under_word_limit": 0.03,
+        "review_depth": 0.32
+      },
+      "confidence": {
+        "review_depth": 0.52
+      },
+      "expected": {
+        "passes": true,
+        "unmet_has_title": false,
+        "unmet_has_summary": false,
+        "unmet_cites_sources": false,
+        "unmet_under_word_limit": false
+      },
+      "latency_ms": 323.27280001481995,
+      "used_fallback": false,
+      "error": null
+    }
+  ]
+}

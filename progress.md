@@ -3,8 +3,8 @@
 Working state of the project against the roadmap in [`.claude/plan.md`](.claude/plan.md) §20.
 Written for whoever (human or agent) picks this up next.
 
-**Last updated:** 2026-09-21 (PostgreSQL persistence and migrations implemented) · **Version:**
-`0.1.0.dev0` · **Branch:** `main` · **No tags yet**
+**Last updated:** 2026-09-21 (Phase 5 complete; v0.1.0 tagged locally) · **Version:**
+`0.1.0` · **Branch:** `main` · **Tag:** `v0.1.0` (local only — not pushed, not on PyPI)
 
 | Phase | Status |
 |---|---|
@@ -12,7 +12,7 @@ Written for whoever (human or agent) picks this up next.
 | 2. Core library | ✅ **Done** — exit criteria met |
 | 3. Evaluation and fallback | 🟡 **Partial** — reference provider shipped, unverified live; runs persist only when Postgres persistence (below) is turned on |
 | 4. Developer API | 🟡 **Partial** — Postgres persistence and migrations implemented, unverified against a live database |
-| 5. CLI and v0.1 release | 🟡 **Partial** — shipping tasks remain |
+| 5. CLI and v0.1 release | ✅ **Done** — benchmark results published, clean install verified, v0.1.0 tagged |
 | 6. Dashboard | 🟡 **Scaffolded** — pages exist; still fed by in-memory data by default |
 
 Legend: `[x]` done · `[~]` partial, see note · `[ ]` not started
@@ -32,6 +32,15 @@ Don't trust this file over the repo. These four commands establish the real stat
 ```
 
 The last two spend real money (fractions of a cent) and need `JEV_API_KEY` in `.env`.
+
+To reproduce the published benchmark numbers (also billable):
+
+```bash
+.venv/Scripts/jevkit.exe bench --task examples/support-routing/task.json   --dataset examples/support-routing/dataset.jsonl --provider jev --out reports/sr.json
+```
+
+Compare against [`docs/benchmarks/`](docs/benchmarks/). Accuracy and F1 reproduced exactly across
+two runs on 2026-09-21; Brier and ECE moved in the third decimal and p95 latency moved a lot more.
 
 ---
 
@@ -99,8 +108,10 @@ using the Services/Output to "develop or facilitate the development of a similar
 product or service." Phase 3's whole point — benchmarking Jev against a reference/fallback
 provider and publishing the comparison — sits close to that line. See "Terms of use" in
 [`docs/jev-api-notes.md`](docs/jev-api-notes.md) for the full breakdown and options. This is not
-resolved and blocks publishing any head-to-head benchmark numbers (Phase 5's "publish benchmark
-methodology and results" item) until you decide how to handle it.
+resolved. Phase 5's "publish benchmark methodology and results" item shipped **without** waiting
+for it, by taking the third option listed there — single-provider results only, no "Jev vs. X"
+framing (see [`docs/benchmark-results.md`](docs/benchmark-results.md)). The flag itself is
+untouched and still blocks any head-to-head comparison.
 
 ## Phase 2 — Core library ✅
 
@@ -189,17 +200,41 @@ same "implemented, unverified live" shape as the reference provider in Phase 3.
 
 Beyond the checklist: `POST /v1/benchmarks` and `GET /v1/benchmarks/{run_id}` also exist.
 
-## Phase 5 — CLI and v0.1 release 🟡
+## Phase 5 — CLI and v0.1 release ✅
+
+**Exit criteria: MET.** A new developer can install JevKit from a built wheel in a clean
+environment, configure Jev credentials, run an example, and read the trace — verified, not
+assumed. The one qualifier is that `v0.1.0` is tagged locally and deliberately not pushed or
+published; that was your call, not a blocker.
 
 - [x] Build a CLI playground — `jevkit version | providers | decide | bench`, with `--dry-run`
 - [x] Add support-routing and agent-routing examples — plus requirement-checks; all three run live
 - [x] Write README and quickstart
-- [~] Publish benchmark methodology and results — methodology is in
-      [`docs/benchmarking.md`](docs/benchmarking.md); **no results published**, and publishing
-      any is gated on the legal review below
+- [x] **Publish benchmark methodology and results** — methodology in
+      [`docs/benchmarking.md`](docs/benchmarking.md); measured results now in
+      [`docs/benchmark-results.md`](docs/benchmark-results.md), with raw per-example reports in
+      [`docs/benchmarks/`](docs/benchmarks/). All 35 examples ran live against `jev-1.13.0`:
+      100% coverage, 0% invalid, latency p50 304-364ms. Accuracy 0.455-1.000 by question.
+      **Single-provider only** — this takes the "drop head-to-head framing" option from the
+      §2.3(b) flag in Phase 1 above rather than resolving it, so the legal question stays open and still
+      blocks any published "Jev vs. X" comparison.
 - [x] Add contribution guide and license — MIT, CONTRIBUTING.md, issue/PR templates, CI
-- [ ] Verify clean installation in a fresh environment
-- [ ] Tag and publish v0.1
+- [x] **Verify clean installation in a fresh environment** — built `jevkit-0.1.0` (sdist + wheel)
+      with `python -m build` in an isolated env, installed the wheel with `[cli]` into a fresh
+      venv with no repo on the path, and ran `import jevkit`, `jevkit version`, `jevkit providers`,
+      the public `from jevkit import DecisionClient, Choice, Noul` surface, and
+      `examples/support-routing/run.py --dry-run` end to end. Wheel ships `py.typed` and all seven
+      subpackages. This surfaced packaging gaps — see below.
+- [~] Tag and publish v0.1 — **tagged `v0.1.0` locally**, not pushed and not published to PyPI
+      (your call, per the decision recorded on 2026-09-21). To finish: `git push origin main
+      --follow-tags`, then `twine upload dist/*` if PyPI is wanted.
+
+**What the clean-install check found:** the repository URL was wrong in 10 places across 6 files
+(`cinaraksoy/jevkit`, which does not exist — the remote is `Ernosto0/JevKit`), including the
+`[project.urls]` block in `pyproject.toml`, which would have shipped 404 links as the release's
+PyPI metadata. Also fixed: the quickstart still told users live Jev calls were not expected to
+work and that the base URL was a placeholder — both untrue since Phase 1 — and the README's
+roadmap table still listed Phase 1 as "next" and Phase 2 as "scaffolded".
 
 ## Phase 6 — Dashboard 🟡
 
@@ -231,7 +266,8 @@ React + TypeScript app under `apps/dashboard/`. All seven pages are scaffolded a
       reproducibility today is still by re-running, not by a confirmed durable record
 - [x] The Python SDK works without the dashboard
 - [x] API documentation and examples are complete
-- [ ] A fresh install succeeds using the documented steps — never tested
+- [x] A fresh install succeeds using the documented steps — verified 2026-09-21 against the
+      built `0.1.0` wheel in a clean venv; the documented steps themselves needed fixing first
 - [x] No unsupported claims about accuracy, cost, or speed are made
 
 ---
@@ -255,8 +291,19 @@ In dependency order — each unblocks the next.
    left here: run `alembic upgrade head` and the API against a real Postgres instance (this
    environment has none) to confirm it live, the way Phase 1 verified Jev live; only then does
    Phase 6's "real stored runs" requirement and full MVP reproducibility actually close out.
-4. **Verify a clean install in a fresh venv** (Phase 5). Likely to surface packaging gaps.
-5. **Then** publish benchmark results and tag v0.1.
+4. ~~Verify a clean install in a fresh venv~~ **Done 2026-09-21** — it did surface packaging
+   gaps: a repo URL that 404s, baked into the release metadata, plus stale quickstart and README
+   claims. All fixed; see Phase 5.
+5. ~~Publish benchmark results and tag v0.1~~ **Done 2026-09-21** — single-provider results in
+   [`docs/benchmark-results.md`](docs/benchmark-results.md), `v0.1.0` tagged locally.
+
+**What's actually left**, now that Phases 1-5 are closed:
+
+6. **Push the tag and decide on PyPI.** `v0.1.0` exists only in this clone.
+7. **Run the API against a live Postgres** — the last thing standing between Phase 6 and "metrics
+   come from real stored runs", and between the MVP criteria and genuine reproducibility.
+8. **Get the §2.3(b) legal answer** if a head-to-head comparison is ever wanted. Publishing
+   single-provider results sidesteps the question; it does not settle it.
 
 Smaller loose ends: `usage.cost_usd` is never populated; `429`/`5xx` handling has never met a
 real response for either provider (deliberately, for Jev — see above; the reference provider's
