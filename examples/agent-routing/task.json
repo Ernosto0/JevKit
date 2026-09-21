@@ -1,0 +1,19 @@
+{
+  "name": "agent-routing",
+  "version": "1",
+  "description": "Pick which configured capability should handle a user task.",
+  "instructions": "Choose from the listed routes only. The calling application checks permissions before acting.",
+  "input_fields": ["task_description", "available_routes"],
+  "questions": {
+    "route": {
+      "kind": "choice",
+      "instructions": "Which capability should handle this task?",
+      "options": ["search", "code", "data_analysis", "human"]
+    },
+    "confident_enough_to_act": {
+      "kind": "noul",
+      "instructions": "Is the correct route clear from the task description alone?",
+      "threshold": 0.6
+    }
+  }
+}

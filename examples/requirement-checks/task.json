@@ -1,0 +1,26 @@
+{
+  "name": "requirement-checks",
+  "version": "1",
+  "description": "Check whether a produced artifact satisfies explicit requirements.",
+  "instructions": "Judge only against the listed requirements. A model check complements deterministic validation; it does not replace it.",
+  "input_fields": ["artifact", "requirements"],
+  "questions": {
+    "passes": {
+      "kind": "noul",
+      "instructions": "Does the artifact satisfy every listed requirement?",
+      "threshold": 0.5
+    },
+    "missing_requirements": {
+      "kind": "selection",
+      "instructions": "Which listed requirements are not satisfied?",
+      "options": ["has_title", "has_summary", "cites_sources", "under_word_limit"],
+      "min_selected": 0
+    },
+    "review_depth": {
+      "kind": "scalar",
+      "instructions": "How much additional human review does this need? 0 = none, 1 = full review.",
+      "minimum": 0.0,
+      "maximum": 1.0
+    }
+  }
+}

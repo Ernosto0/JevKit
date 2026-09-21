@@ -1,0 +1,69 @@
+name: Bug report
+description: Something in JevKit does not behave as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: the Jev wire mapping is knowingly unverified (see
+        `docs/jev-api-notes.md`). If your issue is that a real Jev call fails to parse,
+        that is roadmap phase 1, not a new bug — but details about the real response
+        shape are very welcome.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Include the full error and, if you have one, the trace output.
+    validations: { required: true }
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations: { required: true }
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: A minimal snippet or command. Please redact any API key.
+      render: python
+    validations: { required: true }
+
+  - type: input
+    id: version
+    attributes:
+      label: JevKit version
+      description: Output of `jevkit version`
+    validations: { required: true }
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version and OS
+    validations: { required: true }
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Core SDK
+        - Jev adapter
+        - Policies / fallback
+        - Validation
+        - Tracing
+        - Benchmarks
+        - CLI
+        - API service
+        - Dashboard
+    validations: { required: true }
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I removed every API key and secret from this report.
+          required: true

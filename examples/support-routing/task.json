@@ -1,0 +1,24 @@
+{
+  "name": "support-routing",
+  "version": "1",
+  "description": "Route an inbound support message to a department and flag urgency.",
+  "instructions": "Decide based only on the message text. Do not assume facts that are not stated.",
+  "input_fields": ["message"],
+  "questions": {
+    "department": {
+      "kind": "choice",
+      "instructions": "Which department should handle this message?",
+      "options": ["billing", "technical", "account", "other"]
+    },
+    "urgent": {
+      "kind": "noul",
+      "instructions": "Is this issue urgent for the customer?",
+      "threshold": 0.5
+    },
+    "needs_escalation": {
+      "kind": "noul",
+      "instructions": "Does this require escalation beyond first-line support?",
+      "threshold": 0.7
+    }
+  }
+}

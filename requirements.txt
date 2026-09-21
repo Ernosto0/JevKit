@@ -1,0 +1,31 @@
+# JevKit runtime dependencies.
+#
+# The canonical dependency declaration is pyproject.toml. This file exists for
+# convenience (`pip install -r requirements.txt`) and for Docker layer caching.
+#
+# Core SDK only:     pip install -e .
+# Everything:        pip install -r requirements.txt
+# Dev/test on top:   pip install -r requirements-dev.txt
+
+# --- Core SDK (packages/jevkit) ---
+httpx>=0.27,<1.0
+pydantic>=2.7,<3.0
+pydantic-settings>=2.2,<3.0
+
+# --- CLI playground ---
+typer>=0.12,<1.0
+rich>=13.7
+
+# --- FastAPI service (apps/api) ---
+fastapi>=0.111,<1.0
+uvicorn[standard]>=0.30
+sqlalchemy[asyncio]>=2.0,<3.0
+asyncpg>=0.29
+alembic>=1.13
+
+# --- Benchmarking and evaluation ---
+numpy>=1.26
+pyyaml>=6.0
+
+# --- The project itself, in editable mode ---
+-e .

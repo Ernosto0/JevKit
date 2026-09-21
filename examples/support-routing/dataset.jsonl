@@ -1,0 +1,8 @@
+{"id":"sr-001","state":{"message":"I was charged twice for my subscription this month. Please refund the duplicate."},"expected":{"department":"billing","urgent":true,"needs_escalation":false}}
+{"id":"sr-002","state":{"message":"The export button returns a 500 error on every project since this morning."},"expected":{"department":"technical","urgent":true,"needs_escalation":true}}
+{"id":"sr-003","state":{"message":"How do I change the email address on my account?"},"expected":{"department":"account","urgent":false,"needs_escalation":false}}
+{"id":"sr-004","state":{"message":"Just wanted to say the new dashboard looks great."},"expected":{"department":"other","urgent":false,"needs_escalation":false}}
+{"id":"sr-005","state":{"message":"Our whole team has been locked out since the SSO change and we cannot work."},"expected":{"department":"account","urgent":true,"needs_escalation":true},"notes":"Ambiguous between account and technical; labeled account because the trigger is an SSO configuration change."}
+{"id":"sr-006","state":{"message":"Can you send me a copy of last year's invoices for our accountant?"},"expected":{"department":"billing","urgent":false,"needs_escalation":false}}
+{"id":"sr-007","state":{"message":"The mobile app crashes immediately on launch after the latest update."},"expected":{"department":"technical","urgent":true,"needs_escalation":false}}
+{"id":"sr-008","state":{"message":"I would like to cancel my plan at the end of the billing period."},"expected":{"department":"billing","urgent":false,"needs_escalation":false}}

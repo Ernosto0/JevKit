@@ -1,0 +1,7 @@
+{
+  "name": "support-routing",
+  "version": "1",
+  "description": "Small labeled set of inbound support messages.",
+  "methodology": "Examples are synthetic, authored by hand to cover each department and both urgency outcomes. Labels reflect the author's judgement and were not reviewed by a support team; ambiguous cases are marked in the example notes. This set is far too small to support a general accuracy claim and exists to make the pipeline runnable end to end.",
+  "synthetic": true
+}

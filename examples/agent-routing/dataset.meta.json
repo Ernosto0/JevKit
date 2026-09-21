@@ -1,0 +1,7 @@
+{
+  "name": "agent-routing",
+  "version": "1",
+  "description": "Synthetic user tasks mapped to a fixed capability set.",
+  "methodology": "Hand-authored tasks, one per route plus two deliberately ambiguous cases labeled 'human'. Labels encode the author's routing policy, not a ground truth about the tasks themselves. Do not reuse these labels outside this example.",
+  "synthetic": true
+}

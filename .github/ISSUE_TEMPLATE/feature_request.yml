@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest something JevKit should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        JevKit v0.1 is deliberately small: a dependable decision engine, not an agent
+        framework. Proposals for autonomous execution or visual workflow editing are out
+        of scope for v0.1 — see `.claude/plan.md` section 6.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you unable to do today?
+    validations: { required: true }
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations: { required: true }
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Which roadmap phase does this belong to?
+      options:
+        - "1: Jev API verification"
+        - "2: Core library"
+        - "3: Evaluation and fallback"
+        - "4: Developer API"
+        - "5: CLI and v0.1 release"
+        - "6: Dashboard"
+        - "Later than v0.1"
+        - "Not sure"
+    validations: { required: true }

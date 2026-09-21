@@ -1,0 +1,7 @@
+{
+  "name": "requirement-checks",
+  "version": "1",
+  "description": "Artifacts paired with a fixed requirement checklist.",
+  "methodology": "Synthetic artifacts written so each requirement is unambiguously met or unmet by inspection. 'review_depth' is intentionally unlabeled: it is a judgement with no ground truth, so it is never scored for accuracy.",
+  "synthetic": true
+}
