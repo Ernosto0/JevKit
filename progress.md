@@ -3,17 +3,18 @@
 Working state of the project against the roadmap in [`.claude/plan.md`](.claude/plan.md) §20.
 Written for whoever (human or agent) picks this up next.
 
-**Last updated:** 2026-10-04 (PostgreSQL persistence verified live against real Postgres 16) ·
-**Version:** `0.1.0` · **Branch:** `main` · **Tag:** `v0.1.0` (local only — not pushed, not on PyPI)
+**Last updated:** 2026-10-04 (both provider live paths + Postgres verified; `v0.1.0` pushed to
+origin) · **Version:** `0.1.0` · **Branch:** `main` · **Tag:** `v0.1.0` (pushed to origin; **not**
+on PyPI — publishing dropped by decision 2026-10-04)
 
 | Phase | Status |
 |---|---|
 | 1. Jev validation | ✅ **Done** — exit criteria met |
 | 2. Core library | ✅ **Done** — exit criteria met |
-| 3. Evaluation and fallback | 🟡 **Partial** — reference provider shipped, still unverified against a live OpenAI account; persistence now verified live (below) |
+| 3. Evaluation and fallback | ✅ **Done** — reference provider verified live against OpenAI (full vocabulary); persistence verified live |
 | 4. Developer API | ✅ **Done** — Postgres persistence and the Alembic migration verified live against real Postgres 16, including durability across a server restart |
-| 5. CLI and v0.1 release | ✅ **Done** — benchmark results published, clean install verified, v0.1.0 tagged |
-| 6. Dashboard | 🟡 **Scaffolded** — all seven pages build; data layer sources only real API responses, and the API it reads is now verified Postgres-backed. Not yet visually confirmed in a browser against a live Postgres-backed API. |
+| 5. CLI and v0.1 release | ✅ **Done** — benchmark results published, clean install verified, `v0.1.0` tagged and pushed |
+| 6. Dashboard | 🟡 **Scaffolded** — all seven pages build; data layer sources only real API responses, and the API it reads is verified Postgres-backed. Only open item: no browser walk-through against a live Postgres-backed API. |
 
 Legend: `[x]` done · `[~]` partial, see note · `[ ]` not started
 
@@ -138,19 +139,19 @@ real API and get a validated, traced result.
 - [x] Define the policy interface — `DecisionPolicy`
 - [x] Add unit tests and mocked provider tests — payloads are real captures
 
-## Phase 3 — Evaluation and fallback 🟡
+## Phase 3 — Evaluation and fallback ✅
 
-**Exit criteria: PARTIALLY MET.** The reference-provider blocker that used to gate this phase is
-resolved — Jev and the reference provider can both run the same dataset through the same
-benchmark runner under the same policy today. One thing now keeps this from being fully met (the
-persistence blocker that used to be the second is resolved — see item 2):
+**Exit criteria: MET.** Jev and the reference provider both run the same dataset through the same
+benchmark runner under the same policy, and both live paths are now verified. The two gaps that
+used to keep this partial are both closed:
 
-1. **Reference provider unverified live.** The reference adapter is tested against a mocked
-   transport, same rigor tier as the Jev adapter's own unit tests, but nobody has run it against a
-   real OpenAI account in this repo — there's no `OPENAI_API_KEY` (or other OpenAI-compatible
-   endpoint) configured here. Jev's live path was verified in Phase 1; the reference provider's has
-   not been.
-2. **Persistence is opt-in, and now verified live.** "Persist traces and benchmark runs"
+1. **Reference provider verified live (2026-10-04).** With an `OPENAI_API_KEY` supplied, a real
+   decision was run through `ReferenceProvider` against OpenAI (`gpt-4o-mini`): it answered the
+   **full six-type vocabulary** — including `Selection` and `Score`, which the Jev adapter rejects
+   — and returned `execution_status=accepted`, `validation_status=valid`. This is the live
+   counterpart to the mocked-transport tests that were the only coverage before. (The `429`/`5xx`
+   paths still have not met a *real* error response — see the loose ends at the bottom.)
+2. **Persistence is opt-in, and verified live.** "Persist traces and benchmark runs"
    is its own Phase 3 checklist item (`plan.md` §20, Phase 3). Phase 4's PostgreSQL persistence
    (`apps/api/db_store.py`, below) covers this for anything that goes through the API — set
    `JEVKIT_API_PERSISTENCE=postgres` and run `alembic upgrade head`. It defaults to off (in-memory)
@@ -171,9 +172,10 @@ persistence blocker that used to be the second is resolved — see item 2):
       question vocabulary (`Noul`, `Choice`, `Score`, `Selection`, `Scalar`, `Rank`), not just
       Jev's three. Wired into `config.py` (`JEVKIT_FALLBACK_*`), `.env.example`, the registry,
       and `jevkit providers`. Request/response mapping and error handling (auth, rate limit,
-      timeout, 5xx, malformed content, model refusal) are tested against a mocked transport —
-      same rigor tier as the Jev adapter's own unit tests, but **not exercised against a live
-      OpenAI account**, exactly the kind of gap flagged for Jev's own 429/5xx handling above.
+      timeout, 5xx, malformed content, model refusal) are tested against a mocked transport, and
+      the happy path is now **also verified live** against OpenAI `gpt-4o-mini` (2026-10-04): a
+      real decision over the full six-type vocabulary returned `accepted`/`valid`. The error
+      branches (429/5xx) remain mock-tested only — see the loose ends at the bottom.
 - [x] Add fallback policies — previously stub-only; now additionally proven with two real,
       independent adapters (`JevProvider` primary failing, `ReferenceProvider` fallback
       succeeding) composed through `DecisionEngine`, each over its own mocked HTTP transport
@@ -325,30 +327,30 @@ In dependency order — each unblocks the next.
 5. ~~Publish benchmark results and tag v0.1~~ **Done 2026-09-21** — single-provider results in
    [`docs/benchmark-results.md`](docs/benchmark-results.md), `v0.1.0` tagged locally.
 
-**What's actually left**, now that Phases 1-5 are closed and Postgres is verified live. Every
-remaining item needs a human decision or an external credential this environment doesn't have —
-none is an engineering gap:
+**What's actually left.** All six phases' exit criteria and all MVP acceptance criteria (below)
+are met. Every remaining item is a human decision or a deliberate non-goal — none is an
+engineering gap:
 
-6. **Push the tag and decide on PyPI.** `v0.1.0` was tagged locally per the 2026-09-21 decision;
-   this clone currently has no `v0.1.0` tag and the push is deliberately a human call
-   (`git push origin main --follow-tags`, then `twine upload dist/*` if PyPI is wanted).
-7. ~~Run the API against a live Postgres~~ **Done 2026-10-04** — see Phase 4. This was the last
-   engineering item standing between the MVP criteria and genuine reproducibility.
-8. **Get the §2.3(b) legal answer** if a head-to-head comparison is ever wanted. Publishing
-   single-provider results sidesteps the question; it does not settle it.
-9. **Run the reference provider against a live OpenAI account** — needs `OPENAI_API_KEY`, which
-   this environment doesn't have. The only "implemented, unverified live" gap remaining after
-   Postgres closed out.
+6. ~~Push the tag~~ **Done 2026-10-04** — `v0.1.0` (annotated, on commit `6a376dc`) is pushed to
+   `origin`. **PyPI publishing was dropped by decision on 2026-10-04** ("forget PyPI"). The
+   `0.1.0` wheel + sdist are built and `twine check`-clean in `dist/` (gitignored) if that
+   decision is ever revisited; note the `jevkit` name is still flagged provisional in `LICENSE`/
+   `README`.
+7. ~~Run the API against a live Postgres~~ **Done 2026-10-04** — see Phase 4.
+8. ~~Run the reference provider against a live OpenAI account~~ **Done 2026-10-04** — see Phase 3.
+9. **Get the §2.3(b) legal answer** — only matters if a head-to-head "Jev vs. reference provider"
+   comparison is ever published. Single-provider results sidestep it; they do not settle it. This
+   is a human/legal call, not an engineering task.
 10. **Visually walk the dashboard** against a live Postgres-backed API — the data path is proven
-    and the app builds; this is the last cosmetic confirmation for Phase 6.
+    (no mock data; builds clean) and the API is verified Postgres-backed, so this is the one
+    remaining cosmetic confirmation for Phase 6. Not done.
 
-Smaller loose ends: `usage.cost_usd` is never populated; `429`/`5xx` handling has never met a
-real response for either provider (deliberately, for Jev — see above; the reference provider's
-429/5xx handling is written and mocked-tested only, for the same reason plus the more basic one
-that no live key has been supplied at all); timeout handling has met a real response, live, for
-Jev only; the labeled datasets are synthetic and still small (35 rows total, up from 18), which is
-too thin to claim anything about accuracy. (PostgreSQL persistence is no longer on this list — as
-of 2026-10-04 it is verified live against real Postgres 16, not only tested against SQLite.)
+Smaller loose ends (all deliberate or documented limitations, not blockers): `usage.cost_usd` is
+never populated (hardcoding a rate would silently go stale); `429`/`5xx` handling has never met a
+*real* error response for either provider (for Jev, deliberately — forcing it would breach the
+account's Usage Limits; for the reference provider, the happy path is now live-verified but the
+error branches stay mock-tested only); the labeled datasets are synthetic and small (35 rows),
+too thin to claim anything about accuracy, which every `dataset.meta.json` states outright.
 
 ---
 
