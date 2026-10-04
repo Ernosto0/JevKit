@@ -36,26 +36,19 @@ result.execution_status # ExecutionStatus.ACCEPTED
 
 ## Install
 
-```bash
-pip install "jevkit[cli]"        # SDK + command-line playground
-pip install "jevkit[all]"        # + HTTP API and benchmark extras
-```
-
-Just the SDK, no extras:
-
-```bash
-pip install jevkit
-```
-
-Or from source, for the latest `main`:
+JevKit is installed from source (it is not on PyPI yet):
 
 ```bash
 git clone https://github.com/Ernosto0/JevKit.git
 cd JevKit
 python -m venv .venv
 source .venv/bin/activate         # Windows: .venv\Scripts\activate
-pip install -e ".[all]"
+
+pip install -e ".[cli]"           # SDK + command-line playground
+pip install -e ".[all]"           # + HTTP API and benchmark extras
 ```
+
+Just the SDK, no extras: `pip install -e .`
 
 Requires **Python 3.11+**. The optional dashboard needs **Node 20+**.
 
@@ -238,7 +231,7 @@ The service is a thin layer over the library — it owns transport, auth and per
 decision logic.
 
 ```bash
-pip install "jevkit[api]"
+pip install -e ".[api]"
 uvicorn apps.api.main:app --reload     # http://localhost:8000/docs
 ```
 
