@@ -376,16 +376,15 @@ See [`docs/security.md`](docs/security.md).
 
 ## Contributing
 
-Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Phases 1-5 are done and
-v0.1.0 is tagged. The two most useful things right now are both "implemented, never run live":
+Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Phases 1-5 are done, v0.1.0
+is tagged, and PostgreSQL persistence is now verified live against real Postgres 16 (migration,
+full store round-trip, and durability across an API restart — reproduce with
+`python scripts/verify_postgres_persistence.py`). The most useful thing still left that's
+engineering rather than a human decision:
 
-1. **Run the API against a real Postgres** (`JEVKIT_API_PERSISTENCE=postgres`, `alembic upgrade
-   head`). Persistence and migrations exist (`apps/api/db_store.py`, `migrations/`) and are tested
-   against ephemeral SQLite, but no live database has ever been pointed at them. This also blocks
-   Phase 6's requirement that dashboard metrics come from real stored runs.
-2. **Run the reference provider against a live OpenAI-compatible account.** Its request/response
+1. **Run the reference provider against a live OpenAI-compatible account.** Its request/response
    mapping is tested against a mocked transport only; nothing in this repo has ever spent against
-   it.
+   it. (The Postgres item that used to lead this list is done — see above.)
 
 ---
 

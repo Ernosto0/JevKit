@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `scripts/verify_postgres_persistence.py`: a repeatable probe that exercises the full
+  `PostgresStore` read/write surface against whatever `JEVKIT_DATABASE_URL` points at. Exit 0
+  means every round-trip held against the live database.
+
+### Verified
+
+- **PostgreSQL persistence verified live** against `postgres:16-alpine` (2026-10-04), closing the
+  "implemented, unverified live" gap from the 0.1.0 release. `alembic upgrade head` applies the
+  initial migration cleanly (all eight tables, JSONB columns native) and round-trips through
+  `downgrade base`; the store surface round-trips via the new probe; and a task created through
+  `POST /v1/tasks` on a Postgres-backed API survives a full server restart. Phase 4 and the MVP
+  reproducibility criterion are now met.
+
 ## [0.1.0] - 2026-09-21
 
 First release. A typed decision layer for Jev: define a task, run it, validate the output, apply
