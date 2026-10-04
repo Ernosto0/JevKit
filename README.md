@@ -5,79 +5,74 @@ _Decisions, not another chatbot._
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
-[![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange.svg)](#project-status)
+[![Version: 0.1.0](https://img.shields.io/badge/version-0.1.0-blue.svg)](CHANGELOG.md)
 
-JevKit gives applications a reusable layer for **structured decisions**: define a typed
+JevKit gives your application a reusable layer for **structured decisions**: define a typed
 decision task, run it through a provider, validate the answer against its schema, apply an
-explicit policy, and record a trace you can read afterwards.
+explicit policy, and keep a trace you can read afterwards.
 
-It is not a chatbot, an agent framework, or a text-generation library.
+It is **not** a chatbot, an agent framework, or a text-generation library. If you need a model
+to answer a closed question — *which department? is this urgent? does this draft meet its
+requirements?* — and you want that answer typed, validated, and auditable, that is what JevKit
+is for.
 
----
+```python
+from jevkit import Choice, DecisionClient, Noul
 
-## Project status
+async with DecisionClient.from_env() as client:
+    result = await client.decide(
+        state={"message": "I was charged twice for my subscription."},
+        questions={
+            "department": Choice(options=["billing", "technical", "account", "other"]),
+            "urgent": Noul(instructions="Is this issue urgent?"),
+        },
+    )
 
-**Pre-alpha, but it talks to the real API.**
-
-The core library, policy engine, validation, tracing, benchmark runner, CLI, HTTP API and
-dashboard shell are in place and tested. The Jev wire mapping in
-[`packages/jevkit/providers/jev/schema.py`](packages/jevkit/providers/jev/schema.py) was
-verified end to end against `jev-1.13.0` on 2026-09-21 — request shape, all three question
-types, response parsing, usage and the error contract. `SCHEMA_VERIFIED` is `True` and
-`GET /health` reports it. The captured payloads and every decision behind the mapping are in
-[`docs/jev-api-notes.md`](docs/jev-api-notes.md); re-run the probe yourself with
-`python scripts/verify_jev_api.py`.
-
-Get an API key from **<https://console.typesafe.ai/settings/keys>**. Keys issued by `jevai.org`
-are for a different service and will return `401` here.
-
-Everything also runs against the built-in stub provider, which is how the tests and `--dry-run`
-examples work without credentials or spend.
-
----
-
-## Why
-
-Applications make a lot of small, repeated decisions: which department a ticket belongs to,
-which tool should handle a task, whether a draft meets its requirements. Each one tends to
-grow the same scaffolding around it — prompt construction, output parsing, retry logic,
-validation, logging, evaluation.
-
-JevKit centralizes that scaffolding behind one interface, and makes the model's behavior
-measurable instead of assumed.
-
-**Principles**
-
-- **Jev-first**, but provider-isolated: Jev is the primary adapter; the engine does not depend
-  on it.
-- **Evidence over claims**: accuracy, calibration, latency and cost are measured, not asserted.
-- **Typed by design**: every answer is validated against its question's schema.
-- **Policy-controlled**: a model result never triggers a privileged action on its own.
-- **Observable**: every execution can produce a full trace.
-- **Python-first**: the SDK is useful with no API service and no dashboard.
+result.decisions        # {'department': 'billing', 'urgent': 0.95}
+result.execution_status # ExecutionStatus.ACCEPTED
+```
 
 ---
 
 ## Install
 
 ```bash
-git clone https://github.com/Ernosto0/JevKit.git
-cd JevKit
-
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-
-pip install -e ".[cli]"          # SDK + CLI
-pip install -r requirements-dev.txt   # everything, including the API and test tools
+pip install "jevkit[cli]"        # SDK + command-line playground
+pip install "jevkit[all]"        # + HTTP API and benchmark extras
 ```
 
-Then configure credentials:
+Just the SDK, no extras:
 
 ```bash
-cp .env.example .env             # fill in JEV_API_KEY
+pip install jevkit
 ```
 
-Requires Python 3.11+. The dashboard additionally needs Node 20+.
+Or from source, for the latest `main`:
+
+```bash
+git clone https://github.com/Ernosto0/JevKit.git
+cd JevKit
+python -m venv .venv
+source .venv/bin/activate         # Windows: .venv\Scripts\activate
+pip install -e ".[all]"
+```
+
+Requires **Python 3.11+**. The optional dashboard needs **Node 20+**.
+
+### Configure a provider
+
+JevKit talks to the real Jev API. Get a key from
+**<https://console.typesafe.ai/settings/keys>**, then:
+
+```bash
+cp .env.example .env              # set JEV_API_KEY
+```
+
+> **Heads-up:** keys issued by `jevai.org` are for a *different* service and will return `401`
+> here. JevKit targets TypeSafe's Jev at `api.typesafe.ai`.
+
+No key yet? Everything below also runs against a built-in stub provider with `--dry-run`, so
+you can try the shape of it without credentials or spend.
 
 ---
 
@@ -98,8 +93,8 @@ async def main() -> None:
             },
         )
 
-    print(result.decisions)  # {'department': 'billing', 'urgent': 0.82}
-    print(result.execution_status)  # ExecutionStatus.ACCEPTED
+    print(result.decisions)          # {'department': 'billing', 'urgent': 0.95}
+    print(result.execution_status)   # ExecutionStatus.ACCEPTED
 
     # The decision is a recommendation. Your application still owns the action.
     if result.accepted and result.decisions["department"] == "billing":
@@ -109,7 +104,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-Want the trace too?
+Want to see exactly what happened?
 
 ```python
 result, trace = await client.decide_with_trace(state=..., questions=...)
@@ -137,26 +132,65 @@ python examples/support-routing/run.py --dry-run
 
 ## Question types
 
-| Type | Answer | Validated against | Jev |
-|---|---|---|---|
-| `Noul` | a probability in `[0, 1]` | numeric range | ✅ |
-| `Choice` | one option | membership in a closed set | ✅ |
-| `Score` | a position on a rubric | `[0, len(levels) - 1]` | ✅ |
-| `Selection` | zero or more options | membership, uniqueness, min/max count | ❌ |
-| `Scalar` | a number | an explicit inclusive range | ❌ |
-| `Rank` | an ordering | must be a full permutation of the options | ❌ |
+| Type | Answer | Validated against | Jev | Reference provider |
+|---|---|---|---|---|
+| `Noul` | a probability in `[0, 1]` | numeric range | ✅ | ✅ |
+| `Choice` | one option | membership in a closed set | ✅ | ✅ |
+| `Score` | a position on a rubric | `[0, len(levels) - 1]` | ✅ | ✅ |
+| `Selection` | zero or more options | membership, uniqueness, min/max count | ❌ | ✅ |
+| `Scalar` | a number | an explicit inclusive range | ❌ | ✅ |
+| `Rank` | an ordering | a full permutation of the options | ❌ | ✅ |
 
 An answer that fails validation is **never** returned as accepted.
 
-Jev implements three question types. The other three are part of JevKit's
-provider-agnostic vocabulary, and the Jev adapter rejects them with a
-`TaskDefinitionError` before making a request rather than sending something the
-API will refuse. To express "pick several" with Jev, ask one `Noul` per option —
-each answer then carries its own probability.
+Jev implements three question types. The other three are part of JevKit's provider-agnostic
+vocabulary; the Jev adapter rejects them with a `TaskDefinitionError` *before* making a request,
+rather than sending something the API will refuse. The reference provider (below) supports all
+six. To express "pick several" with Jev, ask one `Noul` per option — each answer then carries
+its own probability.
 
-`Score` answers are deliberately **unrounded**: `2.94` on a four-level rubric
-means "almost exactly the top level". Round it yourself if you only want the
-bucket.
+`Score` answers are deliberately **unrounded**: `2.94` on a four-level rubric means "almost
+exactly the top level". Round it yourself if you only want the bucket.
+
+---
+
+## Providers and fallback
+
+JevKit is Jev-first but provider-isolated — the engine never depends on a specific provider.
+
+- **`jev`** — the primary adapter, verified end to end against the live `jev-1.13.0` API.
+- **`reference`** — an OpenAI-compatible Chat Completions adapter using JSON-schema structured
+  outputs. It supports the full six-type vocabulary and is meant as a fallback or a baseline,
+  **not** as a more-accurate oracle. Point it at any OpenAI-compatible endpoint:
+
+  ```bash
+  JEVKIT_FALLBACK_PROVIDER=reference
+  JEVKIT_FALLBACK_API_KEY=sk-...
+  JEVKIT_FALLBACK_BASE_URL=https://api.openai.com/v1   # default
+  JEVKIT_FALLBACK_MODEL=gpt-4o-mini                    # default
+  ```
+
+Execution policies are explicit and deterministic — no self-learning router, no unbounded
+retries:
+
+```python
+from jevkit import DecisionPolicy, OnFailure
+
+policy = DecisionPolicy(
+    primary_provider="jev",
+    fallback_provider="reference",
+    timeout_seconds=10.0,
+    max_retries=1,
+    on_timeout=OnFailure.RETRY_THEN_FALLBACK,
+    on_invalid_response=OnFailure.FALLBACK,
+    on_low_confidence=OnFailure.REVIEW,
+    min_confidence=0.7,
+)
+
+result = await client.decide(state=..., questions=..., policy=policy)
+```
+
+A fallback result goes through the **same** validation as the primary.
 
 ---
 
@@ -177,74 +211,36 @@ jevkit bench --task examples/support-routing/task.json \
 
 ---
 
-## Policies
-
-Execution policies are explicit and deterministic — there is no self-learning router and no
-unbounded retry path.
-
-```python
-from jevkit import DecisionPolicy, OnFailure
-
-policy = DecisionPolicy(
-    primary_provider="jev",
-    fallback_provider="reference_llm",
-    timeout_seconds=10.0,
-    max_retries=1,
-    on_timeout=OnFailure.RETRY_THEN_FALLBACK,
-    on_invalid_response=OnFailure.FALLBACK,
-    on_low_confidence=OnFailure.REVIEW,
-    min_confidence=0.7,
-)
-
-result = await client.decide(state=..., questions=..., policy=policy)
-```
-
-A fallback result goes through the same validation as the primary. The fallback model is not
-assumed to be more accurate.
-
----
-
 ## Benchmarking
 
-Measuring model behavior on real tasks is the point, so the reporting rules are strict:
+Measuring model behavior on real tasks is the whole point, so the reporting rules are strict:
 
 - Compared providers must run the **same** examples with the **same** policy.
 - Provider, model, task version, dataset version and date are recorded with every run.
 - A metric that does not apply reports **nothing**, never `0.0`.
 - Every dataset carries a `methodology` describing how its labels were made.
 
-```bash
-jevkit bench --task examples/support-routing/task.json \
-             --dataset examples/support-routing/dataset.jsonl --provider jev
-```
-
 Metrics: accuracy, precision/recall/F1, Brier score, calibration error, p50/p95 latency, cost
 per 1,000 decisions, invalid-response rate, fallback rate, coverage.
 
-The datasets shipped in [`examples/`](examples/) are **synthetic and tiny** (9–15 examples each,
-35 total). They exist to make the pipeline runnable — not to support any claim about a provider.
-
-Measured results from running them against Jev are published in
-[`docs/benchmark-results.md`](docs/benchmark-results.md): 100% coverage and 0% invalid responses
-across all 35 examples, accuracy from 0.455 to 1.000 depending on the question. Read the caveats
-there before quoting any of it — at this sample size the numbers describe a pipeline, not a
-provider. Method: [`docs/benchmarking.md`](docs/benchmarking.md).
+> **On the shipped datasets:** the examples in [`examples/`](examples/) are **synthetic and
+> tiny** (9–15 examples each, 35 total). They exist to make the pipeline runnable — not to
+> support any claim about a provider. Measured results from running them against Jev are in
+> [`docs/benchmark-results.md`](docs/benchmark-results.md) (100% coverage, 0% invalid across all
+> 35; accuracy 0.455–1.000 by question). At this sample size the numbers describe a *pipeline*,
+> not a provider. Method: [`docs/benchmarking.md`](docs/benchmarking.md).
 
 ---
 
-## HTTP API
+## HTTP API (optional)
 
-The service is a thin layer over the library. It owns transport, auth and persistence — never
+The service is a thin layer over the library — it owns transport, auth and persistence, never
 decision logic.
 
 ```bash
+pip install "jevkit[api]"
 uvicorn apps.api.main:app --reload     # http://localhost:8000/docs
 ```
-
-By default the service runs against `InMemoryStore` -- nothing survives a restart, which is
-what the test suite and a quick `--reload` loop want. Set `JEVKIT_API_PERSISTENCE=postgres`
-and run `alembic upgrade head` first to persist decisions, traces, tasks and benchmark runs to
-PostgreSQL instead; `docker compose up` does both for you.
 
 | Endpoint | Purpose |
 |---|---|
@@ -257,9 +253,15 @@ PostgreSQL instead; `docker compose up` does both for you.
 
 Provider API keys stay server-side and are never returned to a client.
 
+By default the service uses an in-memory store — nothing survives a restart, which is what a
+quick `--reload` loop wants. For durable storage, set `JEVKIT_API_PERSISTENCE=postgres` and run
+`alembic upgrade head`; `docker compose up` does both for you. The PostgreSQL path (schema,
+migration and store) is verified against real Postgres 16 — reproduce it with
+`python scripts/verify_postgres_persistence.py`.
+
 ---
 
-## Dashboard
+## Dashboard (optional)
 
 ```bash
 cd apps/dashboard
@@ -269,10 +271,8 @@ npm run dev                            # http://localhost:5173
 
 A dark, minimal developer console: overview, tasks, playground, trace viewer, benchmark
 comparison, policies and settings. It is a client of the API and shows only values the API
-actually returned — empty states instead of sample numbers.
-
-The dashboard is v0.2 scope; the shell and API client are in place, and the pages that need
-persisted runs say so plainly rather than displaying placeholder data.
+actually returned — empty states instead of sample numbers. Point it at a Postgres-backed API
+to see real stored runs.
 
 ---
 
@@ -289,10 +289,10 @@ Application / Agent
         |
         +--------------------+
         v                    v
-   Jev Adapter        Optional Provider Adapters
+   Jev Adapter        Reference / Fallback LLM
         |                    |
         v                    v
-    Jev API            Reference / Fallback LLM
+    Jev API            OpenAI-compatible API
         |
         v
   Trace + Metrics + Evaluation
@@ -307,56 +307,26 @@ Application / Agent
 - The API service exposes the core over HTTP; the dashboard is a client of the API.
 - All Jev-specific behavior is confined to `packages/jevkit/providers/jev/`.
 
----
-
-## Repository layout
+### Repository layout
 
 ```text
 packages/jevkit/          The installable SDK
   client/                 DecisionClient and the execution engine
   decisions/              Tasks, question types, normalized results
   providers/jev/          Jev adapter (schema.py holds the wire mapping)
+  providers/reference/    OpenAI-compatible fallback adapter
   policies/               Explicit execution policies
   validation/             Output validation
   tracing/                Execution traces and sinks
   benchmarks/             Datasets, metrics, runner
   cli.py                  CLI playground
-apps/api/                 FastAPI service
+apps/api/                 FastAPI service + PostgreSQL persistence
 apps/dashboard/           React + TypeScript console
 examples/                 Runnable tasks and labeled datasets
+scripts/                  Live verification probes (Jev, timeouts, Postgres)
 tests/                    unit · integration · benchmarks
 docs/                     Architecture, benchmarking, security
 ```
-
----
-
-## Development
-
-```bash
-pytest                                 # full suite, offline
-pytest -m "not benchmark"              # skip benchmark tests
-ruff check . && ruff format --check .
-mypy
-
-cd apps/dashboard && npm run build && npm run lint
-```
-
-`docker compose up` brings up Postgres, the API and the dashboard together.
-
----
-
-## Roadmap
-
-| Phase | Scope | Status |
-|---|---|---|
-| 1 | Verify the Jev API; replace the provisional wire mapping | **done** — verified live against `jev-1.13.0` |
-| 2 | Core library: tasks, adapter, client, validation, policies | **done** |
-| 3 | Benchmark runner, metrics, fallback provider | done, except the reference provider is mock-tested only — never run against a live account |
-| 4 | FastAPI service, PostgreSQL persistence, migrations | done, except persistence is unverified against a live Postgres |
-| 5 | CLI, examples, docs, v0.1 release | **done** — v0.1.0 |
-| 6 | Dashboard (v0.2) | shell only; pages need a live Postgres to show real runs |
-
-See [`.claude/plan.md`](.claude/plan.md) for the full plan.
 
 ---
 
@@ -370,21 +340,48 @@ See [`.claude/plan.md`](.claude/plan.md) for the full plan.
 - For decisions affecting money, access, employment, health or legal status, JevKit supports
   human review and does not present model output as a determination.
 
-See [`docs/security.md`](docs/security.md).
+See [`docs/security.md`](docs/security.md) and [`SECURITY.md`](SECURITY.md).
+
+---
+
+## Project status
+
+**v0.1.0 — usable, and verified against real services.** The Jev wire mapping was verified end
+to end against `jev-1.13.0`; the reference provider was verified live against an
+OpenAI-compatible API; and PostgreSQL persistence was verified against real Postgres 16,
+including durability across an API restart. The three verification probes under
+[`scripts/`](scripts/) let you reproduce each of those yourself.
+
+The shipped datasets are synthetic and small, so JevKit makes **no** accuracy claim about any
+provider — see the benchmarking note above.
+
+| Phase | Scope | Status |
+|---|---|---|
+| 1 | Verify the Jev API; replace the provisional wire mapping | **done** — verified live against `jev-1.13.0` |
+| 2 | Core library: tasks, adapter, client, validation, policies | **done** |
+| 3 | Benchmark runner, metrics, fallback provider | **done** — reference provider verified live |
+| 4 | FastAPI service, PostgreSQL persistence, migrations | **done** — persistence verified against live Postgres 16 |
+| 5 | CLI, examples, docs, v0.1 release | **done** — v0.1.0 |
+| 6 | Dashboard (v0.2) | shell + API client in place; pages render real stored runs from a Postgres-backed API |
+
+See [`.claude/plan.md`](.claude/plan.md) for the full plan and [`CHANGELOG.md`](CHANGELOG.md)
+for release notes.
 
 ---
 
 ## Contributing
 
-Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Phases 1-5 are done, v0.1.0
-is tagged, and PostgreSQL persistence is now verified live against real Postgres 16 (migration,
-full store round-trip, and durability across an API restart — reproduce with
-`python scripts/verify_postgres_persistence.py`). The most useful thing still left that's
-engineering rather than a human decision:
+Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Run the suite before you
+open a PR:
 
-1. **Run the reference provider against a live OpenAI-compatible account.** Its request/response
-   mapping is tested against a mocked transport only; nothing in this repo has ever spent against
-   it. (The Postgres item that used to lead this list is done — see above.)
+```bash
+pytest                                 # full suite, offline
+pytest -m "not benchmark"              # skip billable benchmark tests
+ruff check . && ruff format --check . && mypy packages apps
+cd apps/dashboard && npm run build
+```
+
+`docker compose up` brings up Postgres, the API and the dashboard together.
 
 ---
 
@@ -395,6 +392,3 @@ MIT — see [`LICENSE`](LICENSE).
 JevKit is an **independent open-source project**. Jev is developed by TypeSafe AI; JevKit is
 not an official client and carries no endorsement or affiliation. JevKit's license is separate
 from Jev's own access and usage terms.
-
-The name "JevKit" is provisional, pending repository, package, domain and trademark
-availability checks.
